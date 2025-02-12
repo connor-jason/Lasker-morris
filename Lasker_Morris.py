@@ -45,7 +45,66 @@ class Game:
 Class Lasker_Morris(Game):
 #Empty for now
 
+def alpha_beta_search(state, game):
+    """Search game to determine best action; use alpha-beta pruning.
+    As in [Figure 5.7], this version searches all the way to the leaves."""
 
+    player = game.to_move(state)
+
+    # Functions used by alpha_beta
+    def max_value_ab(state, alpha, beta):
+        if game.terminal_test(state):
+            return game.utility(state, player)
+        v = -math.inf
+        for a in game.actions(state):
+            v = max(v, min_value_ab(game.result(state, a), alpha, beta))
+            if v >= beta:
+                return v
+            alpha = max(alpha, v)
+        return v
+
+    def min_value_ab(state, alpha, beta):
+        if game.terminal_test(state):
+            return game.utility(state, player)
+        v = math.inf
+        for a in game.actions(state):
+            v = min(v, max_value_ab(game.result(state, a), alpha, beta))
+            if v <= alpha:
+                return v
+            beta = min(beta, v)
+        return v
+
+    # Body of alpha_beta_search:
+    best_score = -math.inf
+    beta = math.inf
+    best_action = None
+    for a in game.actions(state):
+        v = min_value_ab(game.result(state, a), best_score, beta)
+        if v > best_score:
+            best_score = v
+            best_action = a
+    return best_action
+
+#helper functions to translate between notations
+def tuple_translate(tuple):
+    if tuple[0] == 1:
+        return 'a' + str(tuple[1])
+    if tuple[0] == 2:
+        return 'b' + str(tuple[1])
+    if tuple[0] == 3:
+        return 'c' + str(tuple[1])
+
+
+def string_translate(string):
+    if len(string) == 2:
+        if string[0] == 'a':
+            return (1, int(string[1]))
+        if string[0] == 'b':
+            return (2, int(string[1]))
+        if string[0] == 'c':
+            return (3, int(string[1]))
+    else:
+        return 'INVALID'
 
 def main():
     # Read initial color/symbol
