@@ -43,6 +43,25 @@ class Game:
 
 
 class Lasker_Morris(Game):
+    # A list of all mills in the game (plz someone check i definitely couldve missed some)
+    MILL_LIST = [
+        ("a1", "a4", "a7"),
+        ("a7", "d7", "g7"),
+        ("g7", "g4", "g1"),
+        ("a1", "d1", "g1"),
+        ("b2", "d2", "f2"),
+        ("b2", "b4", "b6"),
+        ("b6", "d6", "f6"),
+        ("f6", "f4", "f2"),
+        ("a4", "b4", "c4"),
+        ("e4", "f4", "g4"),
+        ("d1", "d2", "d3"),
+        ("d5", "d6", "d7"),
+        ("c3", "d3", "e3"),
+        ("c3", "c4", "c5"),
+        ("c5", "d5", "e5"),
+        ("e5", "e4", "e3")
+    ]
     def __init__(self, h=3, v=3, k=3):
         # Board positions
         self.positions = ["a1", "a4", "a7", "b2", "b4", "b6",
@@ -82,15 +101,50 @@ class Lasker_Morris(Game):
 
     def utility(self, state, player):
         """Return the value of this final state to player."""
-        # TODO: add in logic to check for mills or other winning/losing conditions
-        
-        # Check if the player has won
+        # TODO: add in logic to check other winning/losing conditions other than mills and pieces
+
+        opponent = 'O' if player == 'X' else 'X'
+
+        # Count the number of mills for each player
+        mills_player = 0
+        mills_opponent = 0
+        for mill in Lasker_Morris.MILL_LIST:
+            if all(state.board[pos] == player for pos in mill):
+                mills_player += 1
+            elif all(state.board[pos] == opponent for pos in mill):
+                mills_opponent += 1
+
+        # Count the number of pieces for each player
+        pieces_player = sum(1 for pos in state.board if state.board[pos] == player)
+        pieces_opponent = sum(1 for pos in state.board if state.board[pos] == opponent)
+
+        # Combine the values into a single score, weights can change depending on testing and such
+        score = 3 * (mills_player - mills_opponent) + (pieces_player - pieces_opponent)
+
+        # If the game is over, return a high or low value
         if self.terminal_test(state):
             if self.check_win(state, player):
-                return 1
-            elif self.check_win(state, 'O' if player == 'X' else 'X'):
-                return -1
-        return 0
+                return 100
+            elif self.check_win(state, opponent):
+                return -100
+
+        return score
+    
+    def check_mill(self, board, pos, player):
+        """
+        Check if the move at a given position forms a mill for the player
+        """
+        mills_formed = []
+        for mill in Lasker_Morris.MILL_LIST:
+            if pos in mill and all(board[p] == player for p in mill):
+                mills_formed.append(mill)
+        return mills_formed
+
+    def check_win(self, state, player):
+        """
+        Check if a player has won the game
+        """
+        return NotImplementedError
 
     def terminal_test(self, state):
         """Return True if this is a final state for the game."""
