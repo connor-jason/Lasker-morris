@@ -5,78 +5,177 @@ from collections import namedtuple
 #Code from Textbook with some minor modifications
 GameState = namedtuple('GameState', 'to_move, utility, board, moves')
 
-class Game:
-    """A game is similar to a problem, but it has a utility for each
-    state and a terminal test instead of a path cost and a goal
-    test. To create a game, subclass this class and implement actions,
-    result, utility, and terminal_test. You may override display and
-    successors or you can inherit their default methods. You will also
-    need to set the .initial attribute to the initial state; this can
-    be done in the constructor."""
 
-    def actions(self, state):
-        """Return a list of the legal moves at this point."""
-        raise NotImplementedError
-
-    def result(self, state, move):
-        """Return the state that results from making a move from a state."""
-        raise NotImplementedError
-
-    def utility(self, state, player):
-        """Return the value of this final state to player."""
-        raise NotImplementedError
-
-    def terminal_test(self, state):
-        """Return True if this is a final state for the game."""
-        return not self.actions(state)
-
-    def to_move(self, state):
-        """Return the player whose move it is in this state."""
-        return state.to_move
-
-    def display(self, state):
-        """Print or otherwise display the state."""
-        print(state)
-
-    def __repr__(self):
-        return '<{}>'.format(self.__class__.__name__)
-
-
-class Lasker_Morris(Game):
-    # using blue and orange for players
-
-    # i think rather than like TTT where the board just holds all moves
-    # we could have it be ("pos#", "blue/orange")
-    # when we change game board, if the move is a change + not from hand
-    # we update the board by taking out the old move and putting in new move
-
-    # we'll have to keep track of one's removed stones
-    # (# of stones in hand is = init # - (board stones + removed stones)
-
+class Lasker_Morris():
+    # A list of all mills in the game (plz someone check i definitely couldve missed some)
+    # I believe this is good
+    MILL_LIST = [
+        ("a1", "a4", "a7"),
+        ("a7", "d7", "g7"),
+        ("g7", "g4", "g1"),
+        ("a1", "d1", "g1"),
+        ("b2", "d2", "f2"),
+        ("b2", "b4", "b6"),
+        ("b6", "d6", "f6"),
+        ("f6", "f4", "f2"),
+        ("a4", "b4", "c4"),
+        ("e4", "f4", "g4"),
+        ("d1", "d2", "d3"),
+        ("d5", "d6", "d7"),
+        ("c3", "d3", "e3"),
+        ("c3", "c4", "c5"),
+        ("c5", "d5", "e5"),
+        ("e5", "e4", "e3")
+    ]
     def __init__(self):
-        entireBoard = ["a1", "a4", "a7", "b2", "b4", "b6", "c3", "c4", "c5", "d1", "d2", "d3", "d5", 
-                "d6", "d7", "e3", "e4", "e5", "f2", "f4", "f6", "g1", "g4", "g7"]
-        moves = [(x, y) for x in entireBoard
-                for y in ['blue', 'orange']]
-        # this makes a list of possible moves being the entire board with blue/orange
-        self.initial = GameState(to_move='blue', utility=0, board={}, moves=moves)
+        # Board positions
+        self.positions = ["a1", "a4", "a7", "b2", "b4", "b6",
+                          "c3", "c4", "c5", "d1", "d2", "d3",
+                          "d5", "d6", "d7", "e3", "e4", "e5",
+                          "f2", "f4", "f6", "g1", "g4", "g7"]
+        
+        # Initialize the board
+        board = {pos: None for pos in self.positions}
 
-    def actions(self, state):
+        # All positions are initially available for placement by both players- only from hand, and no mills
+        # This is in the form of 'h1/h2 a4 r0'
+        moves = [f"{x} {y} {z}" for x in ['h1', 'h2'] 
+                for y in self.positions 
+                for z in ['r0']]
+
+        self.initial = GameState(to_move='blue', utility=0, board=board, moves=moves)
+
+    def actions(self, state, stonesRemoved):
         """Return a list of the legal moves at this point."""
-        # need to have # of removed stones
-        # get # of stones in hand
-        # get # of stones on board - if this is less than 3, have bool
-        # for each stone on board, get adjacent stones that are 
-        # check if any created mill- if so, add those as well
-        raise NotImplementedError
+        # This list will be in ['h1 a4 r0', 'd1 a4 e5'] etc format
+        listOfMoves = []
+        # This will depend on a lot of factors:
+        # Current player- blue or orange
+        curPlayer = state.to_move
+
+        # Current players # of stones in hand, on board, removed
+        boardStones = 0
+        for x, y in state.board:
+            if y == curPlayer:
+                boardStones += 1
+        # Unsure how to keep track of # of stones removed? For now, it will be passed as arg
+        stonesRemoved = stonesRemoved
+        handStones = 10 - (boardStones + stonesRemoved)
+
+        # If number of stones to play is <=2, other player wins, so return no moves
+        if (handStones == 0 and boardStones <= 2):
+            return listOfMoves
+
+        # Empty squares on board
+        emptySquares = []
+        for x, y in state.board:
+            if y == None:
+                emptySquares.append(x)
+        
+        # Create moves here:
+        # If hand > 0, for each empty square:
+        # Add it to moves 'h1/h2 square r0' (and also check for mills)
+            [f"{x} {y} {z}" for x in ['h1', 'h2'] 
+                for y in self.positions 
+                for z in ['r0']]
+        if (handStones > 0):
+            hand = 'h2'
+            if curPlayer == 'blue':
+                hand = 'h1'
+            for sq in emptySquares:
+                listOfMoves.append(f'{hand} {sq} r0')
+                # for getting moves after creating a mill:
+                # this will 1- check if the move creates a mill
+                # 2- spit out the moves where we can remove a stone
+                # so if opp has 3 pieces we can have 3 moves 'hand sq 
+                if self.getMillMoves(state, stonesRemoved):
+                    listOfMoves.append(self.getMillMoves(state, stonesRemoved))
+        
+        # If hand == 0, boardStones > 3
+        # For each empty square, check all adjacent squares
+        # Only add move if the adj square is good 
+        # 'd1 square 
+
+        # If hand == 0, boardStones == 3: pieces can fly
+        # Thus, add all emptySquares 'd1 square r0' (and also check for mills)
+
+
+        # Once a move is created, check if it has made a mill (send to helper w board + move)
+        # 
+
+        # This is designed to be exhaustive - send back every single specific valid move
+        return listOfMoves
+        # old return statement
+        # return [pos for pos in state.board if state.board[pos] is None]
+
+    def getMillMoves(self, state, stonesRemoved):
+        # helper- to be implemented
+        return 0 
 
     def result(self, state, move):
         """Return the state that results from making a move from a state."""
-        raise NotImplementedError
+        # Make sure the move is valid
+        if move not in state.board or state.board[move] is not None:
+            return "INVALID"
+        
+        # Create a new board with the new move
+        new_board = state.board.copy()
+        new_board[move] = state.to_move
+
+        # Remove the move from the list of available moves
+        new_moves = [m for m in state.moves if m != move]
+
+        # Switch to the other player
+        next_player = 'O' if state.to_move == 'X' else 'X'
+
+        return GameState(to_move=next_player, utility=0, board=new_board, moves=new_moves)
 
     def utility(self, state, player):
         """Return the value of this final state to player."""
-        raise NotImplementedError
+        # TODO: add in logic to check other winning/losing conditions other than mills and pieces
+
+        opponent = 'O' if player == 'X' else 'X'
+
+        # Count the number of mills for each player
+        mills_player = 0
+        mills_opponent = 0
+        for mill in Lasker_Morris.MILL_LIST:
+            if all(state.board[pos] == player for pos in mill):
+                mills_player += 1
+            elif all(state.board[pos] == opponent for pos in mill):
+                mills_opponent += 1
+
+        # Count the number of pieces for each player
+        pieces_player = sum(1 for pos in state.board if state.board[pos] == player)
+        pieces_opponent = sum(1 for pos in state.board if state.board[pos] == opponent)
+
+        # Combine the values into a single score, weights can change depending on testing and such
+        score = 3 * (mills_player - mills_opponent) + (pieces_player - pieces_opponent)
+
+        # If the game is over, return a high or low value
+        if self.terminal_test(state):
+            if self.check_win(state, player):
+                return 100
+            elif self.check_win(state, opponent):
+                return -100
+
+        return score
+    
+    def check_mill(self, board, pos, player):
+        """
+        Check if the move at a given position forms a mill for the player
+        """
+        mills_formed = []
+        for mill in Lasker_Morris.MILL_LIST:
+            if pos in mill and all(board[p] == player for p in mill):
+                mills_formed.append(mill)
+        return mills_formed
+
+    def check_win(self, state, player):
+        """
+        Check if a player has won the game
+        """
+        return NotImplementedError
 
     def terminal_test(self, state):
         """Return True if this is a final state for the game."""
@@ -92,19 +191,6 @@ class Lasker_Morris(Game):
 
     def __repr__(self):
         return '<{}>'.format(self.__class__.__name__)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def alpha_beta_search(state, game):
@@ -168,28 +254,18 @@ def string_translate(string):
     else:
         return 'INVALID'
 
-
-
-
-
-
-
-
-
-
 def main():
     # Read initial color/symbol
-    # for Lasker Morris, this is blue or orange
     player_id = input().strip()
     first_move_made = 0
-    tic = TicTacToe(3, 3, 3)
+    tic = Lasker_Morris()
     tac = tic.initial #gamestate
     while True:
         # first move logic
         if player_id == "blue" and first_move_made == 0:
             moveX1 = (alpha_beta_search(tac, tic)) #get best 1st move as X
             # update internal board with our move
-            tac = TicTacToe.result(tic, tac, moveX1)
+            tac = Lasker_Morris.result(tic, tac, moveX1)
             first_move_made = first_move_made + 1
             print(tuple_translate(moveX1), flush=True) #send move to referee
 
@@ -202,15 +278,15 @@ def main():
                     print("blue player has played an invalid move; orange player wins!", flush=True)
                     sys.exit(0)
                 # update internal board with opponent move
-                tac = TicTacToe.result(tic, tac, translated_op_inputX)
+                tac = Lasker_Morris.result(tic, tac, translated_op_inputX)
                 if tac == "INVALID":
                     print("blue player has played an invalid move; orange player wins!", flush=True)
                     sys.exit(0)
                 moveO1 = alpha_beta_search(tac, tic) #get best move as O
-                tac = TicTacToe.result(tic, tac, moveO1)
+                tac = Lasker_Morris.result(tic, tac, moveO1)
                 print(tuple_translate(moveO1), flush=True)
                 #check for orange win and terminate if win is found
-                if TicTacToe.terminal_test(tic, tac) and tac.utility == 1:
+                if Lasker_Morris.terminal_test(tic, tac) and tac.utility == 1:
                     print("GAME OVER: orange player wins!")
                     sys.exit(0)
 
@@ -222,19 +298,22 @@ def main():
                 print("orange player has played an invalid move; blue player wins!", flush=True)
                 sys.exit(0)
             # update internal board with opponent move
-            tac = TicTacToe.result(tic, tac, translated_op_inputO)
+            tac = Lasker_Morris.result(tic, tac, translated_op_inputO)
             if tac == "INVALID":
                 print("orange player has played an invalid move; blue player wins!", flush=True)
             # Your move logic here
             moveX2 = alpha_beta_search(tac, tic)  # get best move as X
-            tac = TicTacToe.result(tic, tac, moveX2)
+            tac = Lasker_Morris.result(tic, tac, moveX2)
             # Send move to referee
             print(tuple_translate(moveX2), flush=True)
             # check for blue win and terminate if win is found
-            if TicTacToe.terminal_test(tic, tac) and tac.utility == 1:
+            if Lasker_Morris.terminal_test(tic, tac) and tac.utility == 1:
                 print("GAME OVER: blue player wins!")
                 sys.exit(0)
 
-            if TicTacToe.terminal_test(tic, tac) and tac.utility == 0:
+            if Lasker_Morris.terminal_test(tic, tac) and tac.utility == 0:
                 print("GAME OVER: it's a draw!")
                 sys.exit(0)
+        except Exception as e:
+            print("Error:", e)
+            sys.exit(1)
