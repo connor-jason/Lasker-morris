@@ -5,6 +5,9 @@ from collections import namedtuple
 #Code from Textbook with some minor modifications
 GameState = namedtuple('GameState', 'to_move, utility, board, moves')
 
+# Assumptions made:
+# When a mill is created, opponent's piece *must* be removed
+
 
 class Lasker_Morris():
     # A list of all mills in the game (plz someone check i definitely couldve missed some)
@@ -55,7 +58,7 @@ class Lasker_Morris():
 
         # Current players # of stones in hand, on board, removed
         boardStones = 0
-        for x, y in state.board:
+        for x, y in state.board.items():
             if y == curPlayer:
                 boardStones += 1
         # Unsure how to keep track of # of stones removed? For now, it will be passed as arg
@@ -68,49 +71,169 @@ class Lasker_Morris():
 
         # Empty squares on board
         emptySquares = []
-        for x, y in state.board:
+        for x, y in state.board.items():
             if y == None:
                 emptySquares.append(x)
         
         # Create moves here:
         # If hand > 0, for each empty square:
         # Add it to moves 'h1/h2 square r0' (and also check for mills)
-            [f"{x} {y} {z}" for x in ['h1', 'h2'] 
-                for y in self.positions 
-                for z in ['r0']]
         if (handStones > 0):
             hand = 'h2'
             if curPlayer == 'blue':
                 hand = 'h1'
             for sq in emptySquares:
-                listOfMoves.append(f'{hand} {sq} r0')
-                # for getting moves after creating a mill:
-                # this will 1- check if the move creates a mill
-                # 2- spit out the moves where we can remove a stone
-                # so if opp has 3 pieces we can have 3 moves 'hand sq 
-                if self.getMillMoves(state, stonesRemoved):
-                    listOfMoves.append(self.getMillMoves(state, stonesRemoved))
-        
-        # If hand == 0, boardStones > 3
-        # For each empty square, check all adjacent squares
-        # Only add move if the adj square is good 
-        # 'd1 square 
+                milledMoves = self.getMillMoves(state, hand, sq, curPlayer)
+                # if no mill is created:
+                if milledMoves == None:
+                    listOfMoves.append(f'{hand} {sq} r0')
+                else:
+                    for move in milledMoves:
+                        listOfMoves.append(move)
+                
+        # If boardStones > 3
+        # For each current square, check all adjacent squares
+        # Only add move if the adj square is empty
+        # need to check for mills though also
+        pSquares = []
+        for x, y in state.board.items():
+            if y == curPlayer:
+                pSquares.append(x)
+        if boardStones > 3:
+            for sq in pSquares:
+                # helper to return all adj sq's
+                # then, remove all adjs that are NOT empty
+                allAdjs = self.adj(sq)
+                adjSqs = []
+                for x in allAdjs:
+                    if state.board[x] is None:
+                        adjSqs.append(x)
+                for adj in adjSqs:
+                    millMoves = self.getMillMoves(state, adj, sq, curPlayer)
+                    if millMoves == None:
+                        listOfMoves.append(f'{adj} {sq} r0')
+                    else:
+                        for move in millMoves:
+                            listOfMoves.append(move)
+
 
         # If hand == 0, boardStones == 3: pieces can fly
         # Thus, add all emptySquares 'd1 square r0' (and also check for mills)
-
-
-        # Once a move is created, check if it has made a mill (send to helper w board + move)
-        # 
+        if (handStones == 0 and boardStones == 3):
+            for sq in pSquares:
+                for empty in emptySquares:
+                    millMoves = self.getMillMoves(state, empty, sq, curPlayer)
+                    if millMoves == None:
+                        listOfMoves.append(f'{empty} {sq} r0')
+                    else:
+                        for move in millMoves:
+                            listOfMoves.append(move)
 
         # This is designed to be exhaustive - send back every single specific valid move
         return listOfMoves
-        # old return statement
-        # return [pos for pos in state.board if state.board[pos] is None]
 
-    def getMillMoves(self, state, stonesRemoved):
-        # helper- to be implemented
-        return 0 
+    def adj(self, pos):
+        # helper function to return all adjacent sqs to sq
+        if pos == 'a1':
+            return ['a4', 'd1']
+        elif pos == 'a4':
+            return ['a1', 'a7', 'b4']
+        elif pos =='a7':
+            return ['a4', 'd7']
+        elif pos == 'b2':
+            return ['b4', 'd2']
+        elif pos == 'b4':
+            return ['a4', 'b2', 'b6', 'c4']
+        elif pos == 'b6':
+            return ['b4', 'd6']
+        elif pos == 'c3':
+            return ['c4', 'd3']
+        elif pos == 'c4':
+            return ['b4', 'c3', 'c5']
+        elif pos == 'c5':
+            return ['c4', 'd5']
+        elif pos == 'd1':
+            return ['a1', 'd2', 'g1']
+        elif pos == 'd2':
+            return ['b2', 'd1', 'd3', 'f2']
+        elif pos == 'd3':
+            return ['c3', 'd2', 'e3']
+        elif pos == 'd5':
+            return ['c5', 'd6', 'e5']
+        elif pos == 'd6':
+            return ['b6', 'd5', 'd7', 'f6']
+        elif pos == 'd7':
+            return ['a7', 'd6', 'g7']
+        elif pos == 'e3':
+            return ['d3', 'e4']
+        elif pos == 'e4':
+            return ['e3', 'e5', 'f4']
+        elif pos == 'e5':
+            return ['d5', 'e4']
+        elif pos == 'f2':
+            return ['d2', 'f4']
+        elif pos == 'f4':
+            return ['e4', 'f2', 'f6', 'g4']
+        elif pos == 'f6':
+            return ['d6', 'f4']
+        elif pos == 'g1':
+            return ['d1', 'g4']
+        elif pos == 'g4':
+            return ['f4', 'g1', 'g7']
+        elif pos == 'g7':
+            return ['d7', 'g4']
+        else:
+            return []
+
+
+    def getMillMoves(self, state, A, sq, p):
+        # helper function- returns None if no new mill is formed by move
+        # otherwise, returns all possible moves with given 'A B '
+        # first, check if it makes a mill
+        theBoard = state.board.copy()
+        oldMills = 0
+        for mill in Lasker_Morris.MILL_LIST:
+            if all(theBoard[x] == p for x in mill):
+                oldMills += 1
+        newBoard = theBoard.copy()
+        newBoard[sq] = p
+        newMills = 0
+        for mill in Lasker_Morris.MILL_LIST:
+            if all(newBoard[x] == p for x in mill):
+                newMills += 1
+        if (oldMills == newMills):
+            # returning None if there are no new mills formed by move
+            return None
+        
+        # now we know it creates a mill, so 
+        # 1- check all opp positions on new board
+        # 2- check number of opp mills- if all stones are in mills, add all stones,
+        # but if some are in mills, add the non-mills
+        opp = 'blue'
+        if p == 'blue':
+            opp = 'orange'
+        oppSquares = []
+        for x, y in newBoard.items():
+            if y == opp:
+                oppSquares.append(x)
+        # get all oppSquares are in mills
+        notMilled = []
+        for sq in oppSquares:
+            isMill = False
+            for mill in Lasker_Morris.MILL_LIST:
+                if sq in mill and all(newBoard[x] == opp for x in mill):
+                    isMill = True
+                    break
+            if not isMill:
+                notMilled.append(sq)
+
+        # if all milled, return all moves with oppSquares
+        # otherwise, return all moves with notMilled
+        if len(notMilled) == 0:
+            return [f'{A} {sq} {z}' for z in oppSquares]
+        else:
+            return [f'{A} {sq} {z}' for z in notMilled]
+        
 
     def result(self, state, move):
         """Return the state that results from making a move from a state."""
@@ -258,12 +381,15 @@ def main():
     # Read initial color/symbol
     player_id = input().strip()
     first_move_made = 0
-    tic = Lasker_Morris()
-    tac = tic.initial #gamestate
+    LM = Lasker_Morris()
+    theState = LM.initial #gamestate
+    blueRemoved = 0
+    orangeRemoved = 0
+
     while True:
         # first move logic
         if player_id == "blue" and first_move_made == 0:
-            moveX1 = (alpha_beta_search(tac, tic)) #get best 1st move as X
+            moveX1 = (alpha_beta_search(theState, LM)) #get best 1st move as X
             # update internal board with our move
             tac = Lasker_Morris.result(tic, tac, moveX1)
             first_move_made = first_move_made + 1
