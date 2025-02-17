@@ -45,92 +45,79 @@ class Lasker_Morris():
         moves = [f"{x} {y} {z}" for x in ['h1', 'h2'] 
                 for y in self.positions 
                 for z in ['r0']]
+        
+        removed = {'blue': 0, 'orange': 0}
+        self.initial = GameState(to_move='blue', utility=0, board=board, moves=moves, removed=removed)
 
-        self.initial = GameState(to_move='blue', utility=0, board=board, moves=moves)
-
-    def actions(self, state, stonesRemoved):
+    def actions(self, state):
         """Return a list of the legal moves at this point."""
-        # This list will be in ['h1 a4 r0', 'd1 a4 e5'] etc format
-        listOfMoves = []
         # This will depend on a lot of factors:
         # Current player- blue or orange
         curPlayer = state.to_move
 
         # Current players # of stones in hand, on board, removed
-        boardStones = 0
-        for x, y in state.board.items():
-            if y == curPlayer:
-                boardStones += 1
+        boardStones = sum(1 for pos, val in state.board.items() if val == curPlayer)
+
         # Unsure how to keep track of # of stones removed? For now, it will be passed as arg
-        stonesRemoved = stonesRemoved
+        stonesRemoved = state.removed[curPlayer]
         handStones = 10 - (boardStones + stonesRemoved)
 
         # If number of stones to play is <=2, other player wins, so return no moves
         if (handStones == 0 and boardStones <= 2):
-            return listOfMoves
+            return []
 
         # Empty squares on board
-        emptySquares = []
-        for x, y in state.board.items():
-            if y == None:
-                emptySquares.append(x)
+        emptySquares = [pos for pos, occupant in state.board.items() if occupant is None]
+
+        # This list will be in ['h1 a4 r0', 'd1 a4 e5'] etc format
+        moves = []
         
         # Create moves here:
         # If hand > 0, for each empty square:
         # Add it to moves 'h1/h2 square r0' (and also check for mills)
         if (handStones > 0):
-            hand = 'h2'
-            if curPlayer == 'blue':
-                hand = 'h1'
+            hand = 'h1' if curPlayer == 'blue' else 'h2'
             for sq in emptySquares:
-                milledMoves = self.getMillMoves(state, hand, sq, curPlayer)
+                millMoves = self.getMillMoves(state, hand, sq, curPlayer)
                 # if no mill is created:
-                if milledMoves == None:
-                    listOfMoves.append(f'{hand} {sq} r0')
+                if millMoves is None:
+                    moves.append(f'{hand} {sq} r0')
                 else:
-                    for move in milledMoves:
-                        listOfMoves.append(move)
+                    moves.extend(millMoves)
                 
         # If boardStones > 3
         # For each current square, check all adjacent squares
         # Only add move if the adj square is empty
         # need to check for mills though also
-        pSquares = []
-        for x, y in state.board.items():
-            if y == curPlayer:
-                pSquares.append(x)
-        if boardStones > 3:
+        elif boardStones > 3:
+            pSquares = [pos for pos, occupant in state.board.items() if occupant == curPlayer]
             for sq in pSquares:
                 # helper to return all adj sq's
                 # then, remove all adjs that are NOT empty
-                allAdjs = self.adj(sq)
-                adjSqs = []
-                for x in allAdjs:
-                    if state.board[x] is None:
-                        adjSqs.append(x)
+                adjSqs = [adj for adj in self.adj(sq) if state.board[adj] is None]
                 for adj in adjSqs:
                     millMoves = self.getMillMoves(state, adj, sq, curPlayer)
                     if millMoves == None:
-                        listOfMoves.append(f'{adj} {sq} r0')
+                        moves.append(f'{adj} {sq} r0')
                     else:
-                        for move in millMoves:
-                            listOfMoves.append(move)
+                        moves.extend(millMoves)
 
 
         # If hand == 0, boardStones == 3: pieces can fly
         # Thus, add all emptySquares 'd1 square r0' (and also check for mills)
-        if (handStones == 0 and boardStones == 3):
+        elif boardStones == 3:
+            pSquares = [pos for pos, occupant in state.board.items() if occupant == curPlayer]
             for sq in pSquares:
                 for empty in emptySquares:
                     millMoves = self.getMillMoves(state, empty, sq, curPlayer)
                     if millMoves == None:
-                        listOfMoves.append(f'{empty} {sq} r0')
+                        moves.append(f'{empty} {sq} r0')
                     else:
                         for move in millMoves:
-                            listOfMoves.append(move)
+                            moves.append(move)
 
         # This is designed to be exhaustive - send back every single specific valid move
-        return listOfMoves
+        return moves
 
     def adj(self, pos):
         # helper function to return all adjacent sqs to sq
@@ -275,7 +262,22 @@ class Lasker_Morris():
         """
         Check if a player has won the game
         """
-        return NotImplementedError
+        # Determine the opponent
+        opponent = 'orange' if player == 'blue' else 'blue'
+        
+        # Count opponents pieces on the board
+        opp_pieces = sum(1 for pos in state.board if state.board[pos] == opponent)
+        if opp_pieces < 3:
+            return True
+        
+        # Create a simulated state where its the opponents turn to check their moves
+        opponent_state = state._replace(to_move=opponent)
+        
+        # If the opponent has no moves left they lose
+        if len(self.actions(opponent_state)) == 0:
+            return True
+        
+        return False
 
     def terminal_test(self, state):
         """Return True if this is a final state for the game."""
