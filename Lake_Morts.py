@@ -134,56 +134,33 @@ class Lasker_Morris():
 
     def adj(self, pos):
         # helper function to return all adjacent sqs to sq
-        if pos == 'a1':
-            return ['a4', 'd1']
-        elif pos == 'a4':
-            return ['a1', 'a7', 'b4']
-        elif pos =='a7':
-            return ['a4', 'd7']
-        elif pos == 'b2':
-            return ['b4', 'd2']
-        elif pos == 'b4':
-            return ['a4', 'b2', 'b6', 'c4']
-        elif pos == 'b6':
-            return ['b4', 'd6']
-        elif pos == 'c3':
-            return ['c4', 'd3']
-        elif pos == 'c4':
-            return ['b4', 'c3', 'c5']
-        elif pos == 'c5':
-            return ['c4', 'd5']
-        elif pos == 'd1':
-            return ['a1', 'd2', 'g1']
-        elif pos == 'd2':
-            return ['b2', 'd1', 'd3', 'f2']
-        elif pos == 'd3':
-            return ['c3', 'd2', 'e3']
-        elif pos == 'd5':
-            return ['c5', 'd6', 'e5']
-        elif pos == 'd6':
-            return ['b6', 'd5', 'd7', 'f6']
-        elif pos == 'd7':
-            return ['a7', 'd6', 'g7']
-        elif pos == 'e3':
-            return ['d3', 'e4']
-        elif pos == 'e4':
-            return ['e3', 'e5', 'f4']
-        elif pos == 'e5':
-            return ['d5', 'e4']
-        elif pos == 'f2':
-            return ['d2', 'f4']
-        elif pos == 'f4':
-            return ['e4', 'f2', 'f6', 'g4']
-        elif pos == 'f6':
-            return ['d6', 'f4']
-        elif pos == 'g1':
-            return ['d1', 'g4']
-        elif pos == 'g4':
-            return ['f4', 'g1', 'g7']
-        elif pos == 'g7':
-            return ['d7', 'g4']
-        else:
-            return []
+        adjacent = {
+            'a1': ['a4', 'd1'],
+            'a4': ['a1', 'a7', 'b4'],
+            'a7': ['a4', 'd7'],
+            'b2': ['b4', 'd2'],
+            'b4': ['a4', 'b2', 'b6', 'c4'],
+            'b6': ['b4', 'd6'],
+            'c3': ['c4', 'd3'],
+            'c4': ['b4', 'c3', 'c5'],
+            'c5': ['c4', 'd5'],
+            'd1': ['a1', 'd2', 'g1'],
+            'd2': ['b2', 'd1', 'd3', 'f2'],
+            'd3': ['c3', 'd2', 'e3'],
+            'd5': ['c5', 'd6', 'e5'],
+            'd6': ['b6', 'd5', 'd7', 'f6'],
+            'd7': ['a7', 'd6', 'g7'],
+            'e3': ['d3', 'e4'],
+            'e4': ['e3', 'e5', 'f4'],
+            'e5': ['d5', 'e4'],
+            'f2': ['d2', 'f4'],
+            'f4': ['e4', 'f2', 'f6', 'g4'],
+            'f6': ['d6', 'f4'],
+            'g1': ['d1', 'g4'],
+            'g4': ['f4', 'g1', 'g7'],
+            'g7': ['d7', 'g4']
+        }
+        return adjacent.get(pos, [])
 
 
     def getMillMoves(self, state, A, sq, p):
