@@ -43,18 +43,31 @@ class Game:
 
 
 class Lasker_Morris(Game):
-#Empty for now 
-    def __init__(self, h=3, v=3, k=3):
-        self.h = h
-        self.v = v
-        self.k = k
-        # a1, a4, a7, b2, b4, b6, c3, c4, c5, d1, d2, d3, d5, d6, d7, e3, e4, e5, f2, f4, f6, g1, g4, g7
-        moves = [(x, y) for x in range(1, h + 1)
-                 for y in range(1, v + 1)]
-        self.initial = GameState(to_move='X', utility=0, board={}, moves=moves)
+    # using blue and orange for players
+
+    # i think rather than like TTT where the board just holds all moves
+    # we could have it be ("pos#", "blue/orange")
+    # when we change game board, if the move is a change + not from hand
+    # we update the board by taking out the old move and putting in new move
+
+    # we'll have to keep track of one's removed stones
+    # (# of stones in hand is = init # - (board stones + removed stones)
+
+    def __init__(self):
+        entireBoard = ["a1", "a4", "a7", "b2", "b4", "b6", "c3", "c4", "c5", "d1", "d2", "d3", "d5", 
+                "d6", "d7", "e3", "e4", "e5", "f2", "f4", "f6", "g1", "g4", "g7"]
+        moves = [(x, y) for x in entireBoard
+                for y in ['blue', 'orange']]
+        # this makes a list of possible moves being the entire board with blue/orange
+        self.initial = GameState(to_move='blue', utility=0, board={}, moves=moves)
 
     def actions(self, state):
         """Return a list of the legal moves at this point."""
+        # need to have # of removed stones
+        # get # of stones in hand
+        # get # of stones on board - if this is less than 3, have bool
+        # for each stone on board, get adjacent stones that are 
+        # check if any created mill- if so, add those as well
         raise NotImplementedError
 
     def result(self, state, move):
@@ -155,8 +168,18 @@ def string_translate(string):
     else:
         return 'INVALID'
 
+
+
+
+
+
+
+
+
+
 def main():
     # Read initial color/symbol
+    # for Lasker Morris, this is blue or orange
     player_id = input().strip()
     first_move_made = 0
     tic = TicTacToe(3, 3, 3)
