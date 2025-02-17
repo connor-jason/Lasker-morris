@@ -175,7 +175,7 @@ class Lasker_Morris():
         # get all oppSquares are in mills
         notMilled = [
             pos for pos in opponent_positions
-            if not any(pos in mill and all(newBoard[x] == opponent for x in mill)
+                if not any(pos in mill and all(newBoard[x] == opponent for x in mill)
                     for mill in Lasker_Morris.MILL_LIST)
         ]
 
@@ -189,19 +189,47 @@ class Lasker_Morris():
 
     def result(self, state, move):
         """Return the state that results from making a move from a state."""
-        # Make sure the move is valid
-        if move not in state.board or state.board[move] is not None:
-            return "INVALID"
+        # Parse the move into 3 parts
+        try:
+            partA, partB, partC = move.split()
+        except ValueError:
+            return "INVALID" # Move doesn't have 3 parts
         
         # Create a new board with the new move
         new_board = state.board.copy()
-        new_board[move] = state.to_move
+        current_player = state.to_move
+        opponent = 'orange' if current_player == 'blue' else 'blue'
+        new_removed = state.removed.copy()
 
+        # If this is a removal move (partC is not r0), remove the piece
+        if partC != "r0":
+            # Validate that the move is valid
+            if new_board.get(partC) != opponent:
+                return "INVALID"
+            # Remove the opponent's piece
+            new_board[partC] = None
+            new_removed[opponent] += 1
+
+        # In a placement move, partA is a hand marker and partB is the target
+        # In a moving/flying move, partA is the end and partB is the start
+        # If partA starts with 'h', it's a placement, else it's a flying move
+        if partA.startswith('h'):
+            # Placement move
+            if new_board.get(partB) is not None:
+                return "INVALID"
+            new_board[partB] = current_player
+        else:
+            # Flying move
+            if new_board.get(partB) != current_player or new_board.get(partA) is not None:
+                return "INVALID"
+            new_board[partB] = None
+            new_board[partA] = current_player
+            
         # Remove the move from the list of available moves
         new_moves = [m for m in state.moves if m != move]
 
         # Switch to the other player
-        next_player = 'O' if state.to_move == 'X' else 'X'
+        next_player = opponent
 
         return GameState(to_move=next_player, utility=0, board=new_board, moves=new_moves)
 
