@@ -378,8 +378,6 @@ def main():
     first_move_made = 0
     LM = Lasker_Morris()
     theState = LM.initial #gamestate
-    blueRemoved = 0
-    orangeRemoved = 0
 
     while True:
         # first move logic
