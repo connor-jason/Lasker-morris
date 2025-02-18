@@ -4,10 +4,10 @@ from collections import namedtuple
 
 #Code from Textbook with some minor modifications
 GameState = namedtuple('GameState', 'to_move, utility, board, moves')
+Time-limit = 5 #seconds
 
 # Assumptions made:
 # When a mill is created, opponent's piece *must* be removed
-
 
 class Lasker_Morris():
     # A list of all mills in the game (plz someone check i definitely couldve missed some)
@@ -310,67 +310,48 @@ class Lasker_Morris():
     def __repr__(self):
         return '<{}>'.format(self.__class__.__name__)
 
+def alpha_beta_deepening_search(state, game):
+        start_time = time()
+    
+    def alpha_beta_search(state, game, depth):
+        """Search game to determine best action; use alpha-beta pruning.
+        As in [Figure 5.7], this version searches all the way to the leaves."""
+    
+        player = game.to_move(state)
 
-def alpha_beta_search(state, game):
-    """Search game to determine best action; use alpha-beta pruning.
-    As in [Figure 5.7], this version searches all the way to the leaves."""
-
-    player = game.to_move(state)
-
-    # Functions used by alpha_beta
-    def max_value_ab(state, alpha, beta):
-        if game.terminal_test(state):
-            return game.utility(state, player)
-        v = -math.inf
-        for a in game.actions(state):
-            v = max(v, min_value_ab(game.result(state, a), alpha, beta))
-            if v >= beta:
-                return v
-            alpha = max(alpha, v)
-        return v
-
-    def min_value_ab(state, alpha, beta):
-        if game.terminal_test(state):
-            return game.utility(state, player)
-        v = math.inf
-        for a in game.actions(state):
-            v = min(v, max_value_ab(game.result(state, a), alpha, beta))
-            if v <= alpha:
-                return v
-            beta = min(beta, v)
-        return v
-
+        # Functions used by alpha_beta
+        def max_value_ab(state, alpha, beta, depth):
+            if game.terminal_test(state) or depth <= 0 or time() - start_time > time-Limit:
+                return game.utility(state, player)
+            v = -math.inf
+            for a in game.actions(state):
+                v = max(v, min_value_ab(game.result(state, a), alpha, beta, depth - 1))
+                if v >= beta:
+                    return v
+                alpha = max(alpha, v)
+            return v
+    
+        def min_value_ab(state, alpha, beta, depth):
+            if game.terminal_test(state) or depth <= 0 or time() - start_time > time-Limit:
+                return game.utility(state, player)
+            v = math.inf
+            for a in game.actions(state):
+                v = min(v, max_value_ab(game.result(state, a), alpha, beta, depth - 1))
+                if v <= alpha:
+                    return v
+                beta = min(beta, v)
+            return v
+    
     # Body of alpha_beta_search:
     best_score = -math.inf
     beta = math.inf
     best_action = None
     for a in game.actions(state):
-        v = min_value_ab(game.result(state, a), best_score, beta)
+        v = min_value_ab(game.result(state, a), best_score, beta, depth)
         if v > best_score:
             best_score = v
             best_action = a
     return best_action
-
-#helper functions to translate between notations
-def tuple_translate(tuple):
-    if tuple[0] == 1:
-        return 'a' + str(tuple[1])
-    if tuple[0] == 2:
-        return 'b' + str(tuple[1])
-    if tuple[0] == 3:
-        return 'c' + str(tuple[1])
-
-
-def string_translate(string):
-    if len(string) == 2:
-        if string[0] == 'a':
-            return (1, int(string[1]))
-        if string[0] == 'b':
-            return (2, int(string[1]))
-        if string[0] == 'c':
-            return (3, int(string[1]))
-    else:
-        return 'INVALID'
 
 def main():
     # Read initial color/symbol
@@ -382,55 +363,47 @@ def main():
     while True:
         # first move logic
         if player_id == "blue" and first_move_made == 0:
-            moveX1 = (alpha_beta_search(theState, LM)) #get best 1st move as X
+            moveX1 = (alpha_beta_deepening_search(theState, LM)) #get best 1st move as X
             # update internal board with our move
-            tac = Lasker_Morris.result(tic, tac, moveX1)
+            theState = LM.result(LM, theState, moveX1)
             first_move_made = first_move_made + 1
-            print(tuple_translate(moveX1), flush=True) #send move to referee
+            print(moveX1, flush=True) #send move to referee
 
         try:
             if player_id == "orange":
                 # Read opponent's move
-                opponent_inputX = input().strip() #opponent move as X
-                translated_op_inputX = string_translate(opponent_inputX)
-                if translated_op_inputX == "INVALID":
-                    print("blue player has played an invalid move; orange player wins!", flush=True)
-                    sys.exit(0)
+                opponent_inputX = input().strip() #opponent move as X/blue
                 # update internal board with opponent move
-                tac = Lasker_Morris.result(tic, tac, translated_op_inputX)
-                if tac == "INVALID":
+                theState = LM.result(LM, theState, opponent_inputX)
+                if theState == "INVALID":
                     print("blue player has played an invalid move; orange player wins!", flush=True)
                     sys.exit(0)
-                moveO1 = alpha_beta_search(tac, tic) #get best move as O
-                tac = Lasker_Morris.result(tic, tac, moveO1)
-                print(tuple_translate(moveO1), flush=True)
+                moveO1 = alpha_beta_deepening_search(theState, LM) #get best move as O
+                theState = LM.result(LM, theState, moveO1)
+                print(moveO1, flush=True)
                 #check for orange win and terminate if win is found
-                if Lasker_Morris.terminal_test(tic, tac) and tac.utility == 1:
+                if LM.terminal_test(LM, theState) and theState.utility == 100:
                     print("GAME OVER: orange player wins!")
                     sys.exit(0)
 
 
             # Read opponent's move
             opponent_inputO = input().strip() #opponent move as O
-            translated_op_inputO = string_translate(opponent_inputO)
-            if translated_op_inputO == "INVALID":
-                print("orange player has played an invalid move; blue player wins!", flush=True)
-                sys.exit(0)
             # update internal board with opponent move
-            tac = Lasker_Morris.result(tic, tac, translated_op_inputO)
-            if tac == "INVALID":
+            theState = LM.result(LM, theState, opponent_inputO)
+            if theState == "INVALID":
                 print("orange player has played an invalid move; blue player wins!", flush=True)
             # Your move logic here
-            moveX2 = alpha_beta_search(tac, tic)  # get best move as X
-            tac = Lasker_Morris.result(tic, tac, moveX2)
+            moveX2 = alpha_beta_deepening_search(theState, LM)  # get best move as X
+            theState = LM.result(LM, theState, moveX2)
             # Send move to referee
-            print(tuple_translate(moveX2), flush=True)
+            print(moveX2, flush=True)
             # check for blue win and terminate if win is found
-            if Lasker_Morris.terminal_test(tic, tac) and tac.utility == 1:
+            if LM.terminal_test(LM, theState) and theState.utility == 100:
                 print("GAME OVER: blue player wins!")
                 sys.exit(0)
 
-            if Lasker_Morris.terminal_test(tic, tac) and tac.utility == 0:
+            if LM.terminal_test(LM, theState) and theState.utility == 0:
                 print("GAME OVER: it's a draw!")
                 sys.exit(0)
         except Exception as e:
