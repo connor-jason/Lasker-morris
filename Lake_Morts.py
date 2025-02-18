@@ -4,6 +4,7 @@ from collections import namedtuple
 
 #Code from Textbook with some minor modifications
 GameState = namedtuple('GameState', 'to_move, utility, board, moves')
+Time-limit = 5 #seconds
 
 # Assumptions made:
 # When a mill is created, opponent's piece *must* be removed
@@ -309,42 +310,44 @@ class Lasker_Morris():
     def __repr__(self):
         return '<{}>'.format(self.__class__.__name__)
 
+def alpha_beta_deepening_search(state, game):
+        start_time = time()
+    
+    def alpha_beta_search(state, game, depth):
+        """Search game to determine best action; use alpha-beta pruning.
+        As in [Figure 5.7], this version searches all the way to the leaves."""
+    
+        player = game.to_move(state)
 
-def alpha_beta_search(state, game):
-    """Search game to determine best action; use alpha-beta pruning.
-    As in [Figure 5.7], this version searches all the way to the leaves."""
-
-    player = game.to_move(state)
-
-    # Functions used by alpha_beta
-    def max_value_ab(state, alpha, beta):
-        if game.terminal_test(state):
-            return game.utility(state, player)
-        v = -math.inf
-        for a in game.actions(state):
-            v = max(v, min_value_ab(game.result(state, a), alpha, beta))
-            if v >= beta:
-                return v
-            alpha = max(alpha, v)
-        return v
-
-    def min_value_ab(state, alpha, beta):
-        if game.terminal_test(state):
-            return game.utility(state, player)
-        v = math.inf
-        for a in game.actions(state):
-            v = min(v, max_value_ab(game.result(state, a), alpha, beta))
-            if v <= alpha:
-                return v
-            beta = min(beta, v)
-        return v
-
+        # Functions used by alpha_beta
+        def max_value_ab(state, alpha, beta, depth):
+            if game.terminal_test(state) or depth <= 0 or time() - start_time > time-Limit:
+                return game.utility(state, player)
+            v = -math.inf
+            for a in game.actions(state):
+                v = max(v, min_value_ab(game.result(state, a), alpha, beta, depth - 1))
+                if v >= beta:
+                    return v
+                alpha = max(alpha, v)
+            return v
+    
+        def min_value_ab(state, alpha, beta, depth):
+            if game.terminal_test(state) or depth <= 0 or time() - start_time > time-Limit:
+                return game.utility(state, player)
+            v = math.inf
+            for a in game.actions(state):
+                v = min(v, max_value_ab(game.result(state, a), alpha, beta, depth - 1))
+                if v <= alpha:
+                    return v
+                beta = min(beta, v)
+            return v
+    
     # Body of alpha_beta_search:
     best_score = -math.inf
     beta = math.inf
     best_action = None
     for a in game.actions(state):
-        v = min_value_ab(game.result(state, a), best_score, beta)
+        v = min_value_ab(game.result(state, a), best_score, beta, depth)
         if v > best_score:
             best_score = v
             best_action = a
@@ -360,7 +363,7 @@ def main():
     while True:
         # first move logic
         if player_id == "blue" and first_move_made == 0:
-            moveX1 = (alpha_beta_search(theState, LM)) #get best 1st move as X
+            moveX1 = (alpha_beta_deepening_search(theState, LM)) #get best 1st move as X
             # update internal board with our move
             theState = LM.result(LM, theState, moveX1)
             first_move_made = first_move_made + 1
@@ -375,7 +378,7 @@ def main():
                 if theState == "INVALID":
                     print("blue player has played an invalid move; orange player wins!", flush=True)
                     sys.exit(0)
-                moveO1 = alpha_beta_search(theState, LM) #get best move as O
+                moveO1 = alpha_beta_deepening_search(theState, LM) #get best move as O
                 theState = LM.result(LM, theState, moveO1)
                 print(moveO1, flush=True)
                 #check for orange win and terminate if win is found
@@ -391,8 +394,8 @@ def main():
             if theState == "INVALID":
                 print("orange player has played an invalid move; blue player wins!", flush=True)
             # Your move logic here
-            moveX2 = alpha_beta_search(theState, LM)  # get best move as X
-            theState = Lasker_Morris.result(LM, theState, moveX2)
+            moveX2 = alpha_beta_deepening_search(theState, LM)  # get best move as X
+            theState = LM.result(LM, theState, moveX2)
             # Send move to referee
             print(moveX2, flush=True)
             # check for blue win and terminate if win is found
