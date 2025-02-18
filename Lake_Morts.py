@@ -1,10 +1,11 @@
 import math
 import sys
 from collections import namedtuple
+from time import time
 
 #Code from Textbook with some minor modifications
-GameState = namedtuple('GameState', 'to_move, utility, board, moves')
-Time-limit = 5 #seconds
+GameState = namedtuple('GameState', 'to_move, utility, board, moves, removed')
+time_limit = 5  # seconds
 
 # Assumptions made:
 # When a mill is created, opponent's piece *must* be removed
@@ -43,8 +44,8 @@ class Lasker_Morris():
         # All positions are initially available for placement by both players- only from hand, and no mills
         # This is in the form of 'h1/h2 a4 r0'
         moves = [f"{x} {y} {z}" for x in ['h1', 'h2'] 
-                for y in self.positions 
-                for z in ['r0']]
+                 for y in self.positions 
+                 for z in ['r0']]
         
         removed = {'blue': 0, 'orange': 0}
         self.initial = GameState(to_move='blue', utility=0, board=board, moves=moves, removed=removed)
@@ -97,11 +98,10 @@ class Lasker_Morris():
                 adjSqs = [adj for adj in self.adj(sq) if state.board[adj] is None]
                 for adj in adjSqs:
                     millMoves = self.getMillMoves(state, adj, sq, curPlayer)
-                    if millMoves == None:
+                    if millMoves is None:
                         moves.append(f'{adj} {sq} r0')
                     else:
                         moves.extend(millMoves)
-
 
         # If hand == 0, boardStones == 3: pieces can fly
         # Thus, add all emptySquares 'd1 square r0' (and also check for mills)
@@ -110,7 +110,7 @@ class Lasker_Morris():
             for sq in pSquares:
                 for empty in emptySquares:
                     millMoves = self.getMillMoves(state, empty, sq, curPlayer)
-                    if millMoves == None:
+                    if millMoves is None:
                         moves.append(f'{empty} {sq} r0')
                     else:
                         for move in millMoves:
@@ -149,7 +149,6 @@ class Lasker_Morris():
         }
         return adjacent.get(pos, [])
 
-
     def getMillMoves(self, state, hand, sq, player):
         # helper function- returns None if no new mill is formed by move
         # otherwise, returns all possible moves with given 'A B '
@@ -176,7 +175,7 @@ class Lasker_Morris():
         notMilled = [
             pos for pos in opponent_positions
                 if not any(pos in mill and all(newBoard[x] == opponent for x in mill)
-                    for mill in Lasker_Morris.MILL_LIST)
+                           for mill in Lasker_Morris.MILL_LIST)
         ]
 
         # if all milled, return all moves with oppSquares
@@ -186,7 +185,6 @@ class Lasker_Morris():
         
         return [f'{hand} {sq} {z}' for z in notMilled]
         
-
     def result(self, state, move):
         """Return the state that results from making a move from a state."""
         # Parse the move into 3 parts
@@ -231,7 +229,7 @@ class Lasker_Morris():
         # Switch to the other player
         next_player = opponent
 
-        return GameState(to_move=next_player, utility=0, board=new_board, moves=new_moves)
+        return GameState(to_move=next_player, utility=0, board=new_board, moves=new_moves, removed=new_removed)
 
     def utility(self, state, player):
         """Return the value of this final state to player."""
@@ -311,17 +309,17 @@ class Lasker_Morris():
         return '<{}>'.format(self.__class__.__name__)
 
 def alpha_beta_deepening_search(state, game):
-        start_time = time()
-    
+    start_time = time()
+    depth = 3  # default depth, can be increased
     def alpha_beta_search(state, game, depth):
         """Search game to determine best action; use alpha-beta pruning.
         As in [Figure 5.7], this version searches all the way to the leaves."""
     
         player = game.to_move(state)
-
+    
         # Functions used by alpha_beta
         def max_value_ab(state, alpha, beta, depth):
-            if game.terminal_test(state) or depth <= 0 or time() - start_time > time-Limit:
+            if game.terminal_test(state) or depth <= 0 or time() - start_time > time_limit:
                 return game.utility(state, player)
             v = -math.inf
             for a in game.actions(state):
@@ -332,7 +330,7 @@ def alpha_beta_deepening_search(state, game):
             return v
     
         def min_value_ab(state, alpha, beta, depth):
-            if game.terminal_test(state) or depth <= 0 or time() - start_time > time-Limit:
+            if game.terminal_test(state) or depth <= 0 or time() - start_time > time_limit:
                 return game.utility(state, player)
             v = math.inf
             for a in game.actions(state):
@@ -342,68 +340,70 @@ def alpha_beta_deepening_search(state, game):
                 beta = min(beta, v)
             return v
     
-    # Body of alpha_beta_search:
-    best_score = -math.inf
-    beta = math.inf
-    best_action = None
-    for a in game.actions(state):
-        v = min_value_ab(game.result(state, a), best_score, beta, depth)
-        if v > best_score:
-            best_score = v
-            best_action = a
-    return best_action
+# Body of alpha_beta_search:
+        best_score = -math.inf
+        beta = math.inf
+        best_action = None
+        for a in game.actions(state):
+            v = min_value_ab(game.result(state, a), best_score, beta, depth)
+            if v > best_score:
+                best_score = v
+                best_action = a
+        return best_action
+    
+    return alpha_beta_search(state, game, depth)
 
 def main():
     # Read initial color/symbol
     player_id = input().strip()
     first_move_made = 0
     LM = Lasker_Morris()
-    theState = LM.initial #gamestate
+    theState = LM.initial  # gamestate
 
     while True:
         # first move logic
         if player_id == "blue" and first_move_made == 0:
-            moveX1 = (alpha_beta_deepening_search(theState, LM)) #get best 1st move as X
+            moveX1 = alpha_beta_deepening_search(theState, LM)  # get best 1st move as X
             # update internal board with our move
-            theState = LM.result(LM, theState, moveX1)
-            first_move_made = first_move_made + 1
-            print(moveX1, flush=True) #send move to referee
+            theState = LM.result(theState, moveX1)
+            first_move_made += 1
+            print(moveX1, flush=True)  # send move to referee
 
         try:
             if player_id == "orange":
                 # Read opponent's move
-                opponent_inputX = input().strip() #opponent move as X/blue
+                opponent_inputX = input().strip()  # opponent move as X/blue
                 # update internal board with opponent move
-                theState = LM.result(LM, theState, opponent_inputX)
+                theState = LM.result(theState, opponent_inputX)
                 if theState == "INVALID":
                     print("blue player has played an invalid move; orange player wins!", flush=True)
                     sys.exit(0)
-                moveO1 = alpha_beta_deepening_search(theState, LM) #get best move as O
-                theState = LM.result(LM, theState, moveO1)
+                moveO1 = alpha_beta_deepening_search(theState, LM)  # get best move as O
+                theState = LM.result(theState, moveO1)
                 print(moveO1, flush=True)
-                #check for orange win and terminate if win is found
-                if LM.terminal_test(LM, theState) and theState.utility == 100:
+                # check for orange win and terminate if win is found
+                if LM.terminal_test(theState) and theState.utility == 100:
                     print("GAME OVER: orange player wins!")
                     sys.exit(0)
 
-
             # Read opponent's move
-            opponent_inputO = input().strip() #opponent move as O
+            opponent_inputO = input().strip()  # opponent move as O
             # update internal board with opponent move
-            theState = LM.result(LM, theState, opponent_inputO)
+            theState = LM.result(theState, opponent_inputO)
             if theState == "INVALID":
                 print("orange player has played an invalid move; blue player wins!", flush=True)
+                sys.exit(0)
             # Your move logic here
             moveX2 = alpha_beta_deepening_search(theState, LM)  # get best move as X
-            theState = LM.result(LM, theState, moveX2)
+            theState = LM.result(theState, moveX2)
             # Send move to referee
             print(moveX2, flush=True)
             # check for blue win and terminate if win is found
-            if LM.terminal_test(LM, theState) and theState.utility == 100:
+            if LM.terminal_test(theState) and theState.utility == 100:
                 print("GAME OVER: blue player wins!")
                 sys.exit(0)
 
-            if LM.terminal_test(LM, theState) and theState.utility == 0:
+            if LM.terminal_test(theState) and theState.utility == 0:
                 print("GAME OVER: it's a draw!")
                 sys.exit(0)
         except Exception as e:
