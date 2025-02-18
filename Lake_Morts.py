@@ -250,8 +250,14 @@ class Lasker_Morris():
         pieces_player = sum(1 for pos in state.board if state.board[pos] == player)
         pieces_opponent = sum(1 for pos in state.board if state.board[pos] == opponent)
 
+        # Count the number of legal moves available for each player
+        legal_moves_player = len(self.actions(state))
+
+        opponent_state = state._replace(to_move=opponent)
+        legal_moves_opponent = len(self.actions(opponent_state))
+
         # Combine the values into a single score, weights can change depending on testing and such
-        score = 3 * (mills_player - mills_opponent) + (pieces_player - pieces_opponent)
+        score = 3 * (mills_player - mills_opponent) + (pieces_player - pieces_opponent) + 0.5 * (legal_moves_player - legal_moves_opponent)
 
         # If the game is over, return a high or low value
         if self.terminal_test(state):
@@ -259,6 +265,8 @@ class Lasker_Morris():
                 return 100
             elif self.check_win(state, opponent):
                 return -100
+            else:
+                return 0
 
         return score
     
