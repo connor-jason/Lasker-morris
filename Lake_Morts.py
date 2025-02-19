@@ -90,7 +90,7 @@ class Lasker_Morris():
         # For each current square, check all adjacent squares
         # Only add move if the adj square is empty
         # need to check for mills though also
-        elif boardStones > 3:
+        if boardStones > 3:
             pSquares = [pos for pos, occupant in state.board.items() if occupant == curPlayer]
             for sq in pSquares:
                 # helper to return all adj sq's
@@ -105,7 +105,7 @@ class Lasker_Morris():
 
         # If hand == 0, boardStones == 3: pieces can fly
         # Thus, add all emptySquares 'd1 square r0' (and also check for mills)
-        elif boardStones == 3:
+        if boardStones == 3 and handStones == 0:
             pSquares = [pos for pos, occupant in state.board.items() if occupant == curPlayer]
             for sq in pSquares:
                 for empty in emptySquares:
