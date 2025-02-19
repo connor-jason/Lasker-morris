@@ -158,7 +158,7 @@ class Lasker_Morris():
         
         newBoard = oldBoard.copy()
         newBoard[sq] = player
-        newMills = sum(1 for mill in Lasker_Morris.MILL_LIST if all(oldBoard[pos] == player for pos in mill))
+        newMills = sum(1 for mill in Lasker_Morris.MILL_LIST if all(newBoard[pos] == player for pos in mill))
         if (oldMills == newMills):
             # returning None if there are no new mills formed by move
             return None
@@ -229,13 +229,16 @@ class Lasker_Morris():
         # Switch to the other player
         next_player = opponent
 
-        return GameState(to_move=next_player, utility=0, board=new_board, moves=new_moves, removed=new_removed)
+        # Create a new state with a utility of 0 then update it by using the utility function
+        new_state = GameState(to_move=next_player, utility=0, board=new_board, moves=new_moves, removed=new_removed)
+        new_state = new_state._replace(utility=self.utility(new_state, new_state.to_move))
+
+        return new_state
 
     def utility(self, state, player):
         """Return the value of this final state to player."""
-        # TODO: add in logic to check other winning/losing conditions other than mills and pieces
 
-        opponent = 'O' if player == 'X' else 'X'
+        opponent = 'blue' if player == 'orange' else 'blue'
 
         # Count the number of mills for each player
         mills_player = 0
@@ -257,7 +260,7 @@ class Lasker_Morris():
         legal_moves_opponent = len(self.actions(opponent_state))
 
         # Combine the values into a single score, weights can change depending on testing and such
-        score = 3 * (mills_player - mills_opponent) + (pieces_player - pieces_opponent) + 0.5 * (legal_moves_player - legal_moves_opponent)
+        score = 10 * (mills_player - mills_opponent) + 2 * (pieces_player - pieces_opponent) + 0.5 * (legal_moves_player - legal_moves_opponent)
 
         # If the game is over, return a high or low value
         if self.terminal_test(state):
@@ -316,50 +319,117 @@ class Lasker_Morris():
     def __repr__(self):
         return '<{}>'.format(self.__class__.__name__)
 
+def memoize_states(state):
+    # Memoize the state's board, removed counts, and turn
+    board_tuple = tuple(sorted(state.board.items()))
+    removed_tuple = tuple(sorted(state.removed.items()))
+    return (state.to_move, board_tuple, removed_tuple)
+
 def alpha_beta_deepening_search(state, game):
     start_time = time()
-    depth = 3  # default depth, can be increased
-    def alpha_beta_search(state, game, depth):
-        """Search game to determine best action; use alpha-beta pruning.
-        As in [Figure 5.7], this version searches all the way to the leaves."""
+    safe_margin = 0.02  # Send the move 0.02 seconds before the time limit
+    best_action = None
+    depth = 1
+    memo_states = {} # Store the state and its values at a certain depth
+
+    # Continue deepening until we hit the time limit
+    while time() - start_time < time_limit - safe_margin:
+        current_best = alpha_beta_search(state, game, depth, start_time, memo_states, safe_margin)
+        if current_best is not None:
+            best_action = current_best
+        depth += 1
+    return best_action
+
+def alpha_beta_search(state, game, depth, start_time, memo_states, safe_margin):
+    """Search game to determine best action; use alpha-beta pruning.
+    As in [Figure 5.7], this version searches all the way to the leaves."""
+
+    player = game.to_move(state)
     
-        player = game.to_move(state)
+    # Sort moves that remove an opponent piece to the beginning
+    def order_moves(moves, reverse=False):
+        return sorted(moves, key=lambda move: 1 if move.split()[2] != "r0" else 0, reverse=reverse)
     
-        # Functions used by alpha_beta
-        def max_value_ab(state, alpha, beta, depth):
-            if game.terminal_test(state) or depth <= 0 or time() - start_time > time_limit:
-                return game.utility(state, player)
-            v = -math.inf
-            for a in game.actions(state):
-                v = max(v, min_value_ab(game.result(state, a), alpha, beta, depth - 1))
-                if v >= beta:
-                    return v
-                alpha = max(alpha, v)
-            return v
-    
-        def min_value_ab(state, alpha, beta, depth):
-            if game.terminal_test(state) or depth <= 0 or time() - start_time > time_limit:
-                return game.utility(state, player)
-            v = math.inf
-            for a in game.actions(state):
-                v = min(v, max_value_ab(game.result(state, a), alpha, beta, depth - 1))
-                if v <= alpha:
-                    return v
-                beta = min(beta, v)
-            return v
-    
-# Body of alpha_beta_search:
-        best_score = -math.inf
-        beta = math.inf
-        best_action = None
-        for a in game.actions(state):
-            v = min_value_ab(game.result(state, a), best_score, beta, depth)
-            if v > best_score:
-                best_score = v
-                best_action = a
-        return best_action
-    
-    return alpha_beta_search(state, game, depth)
+    def max_value_ab(state, alpha, beta, depth):
+        # Check if we are near the time limit
+        if time() - start_time > time_limit - safe_margin:
+            return game.utility(state, player)
+        
+        # Check if the state is terminal or if we have reached the root
+        if game.terminal_test(state) or depth <= 0:
+            return game.utility(state, player)
+        
+        # If the state has already been evaluated at this depth, return the value
+        state_key = memoize_states(state)
+        if state_key in memo_states and memo_states[state_key][1] >= depth:
+            return memo_states[state_key][0]
+        
+        v = -math.inf
+        # Check high utility first
+        for a in order_moves(game.actions(state), reverse=True):
+            if time() - start_time > time_limit - safe_margin:
+                break
+            result_state = game.result(state, a)
+            if result_state == "INVALID":
+                continue
+            # Recursively call min_value
+            v = max(v, min_value_ab(result_state, alpha, beta, depth - 1))
+            # Beta pruning
+            if v >= beta:
+                memo_states[state_key] = (v, depth) # Cache the value
+                return v
+            alpha = max(alpha, v)
+        memo_states[state_key] = (v, depth) # Cache the value
+        return v
+
+    def min_value_ab(state, alpha, beta, depth):
+        # Check if we are near the time limit
+        if time() - start_time > time_limit - safe_margin:
+            return game.utility(state, player)
+        
+        # Check if the state is terminal or if we have reached the root
+        if game.terminal_test(state) or depth <= 0:
+            return game.utility(state, player)
+        
+        # If the state has already been evaluated at this depth, return the value
+        state_key = memoize_states(state)
+        if state_key in memo_states and memo_states[state_key][1] >= depth:
+            return memo_states[state_key][0]
+        
+        v = math.inf
+        # Check low utility moves first
+        for a in order_moves(game.actions(state), reverse=False):
+            if time() - start_time > time_limit - safe_margin:
+                break
+            result_state = game.result(state, a)
+            if result_state == "INVALID":
+                continue
+            # Recursively call max_value
+            v = min(v, max_value_ab(result_state, alpha, beta, depth - 1))
+            # Alpha pruning
+            if v <= alpha:
+                memo_states[state_key] = (v, depth) # Cache the value
+                return v
+            beta = min(beta, v)
+        memo_states[state_key] = (v, depth) # Cache the value
+        return v
+
+    best_score = -math.inf
+    beta = math.inf
+    best_action = None
+    for a in order_moves(game.actions(state), reverse=True):
+        # Check if we are near the time limit
+        if time() - start_time > time_limit - safe_margin:
+            break
+        result_state = game.result(state, a)
+        if result_state == "INVALID":
+            continue
+        v = min_value_ab(result_state, best_score, beta, depth - 1)
+        # Keep the best action
+        if v > best_score:
+            best_score = v
+            best_action = a
+    return best_action
 
 def main():
     # Read initial color/symbol
@@ -417,3 +487,6 @@ def main():
         except Exception as e:
             print("Error:", e)
             sys.exit(1)
+
+if __name__ == "__main__":
+    main()
