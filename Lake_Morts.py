@@ -50,6 +50,19 @@ class Lasker_Morris():
         removed = {'blue': 0, 'orange': 0}
         self.initial = GameState(to_move='blue', utility=0, board=board, moves=moves, removed=removed, stalemate_count = 0)
 
+        # Precompute which mills each position is in
+        self.mills_by_position = self.compute_mills_by_position()
+
+    def compute_mills_by_position(self):
+        """
+        Precomputes mills by position for faster mill checking
+        """
+        mills_by_pos = {pos: [] for pos in self.positions}
+        for mill in Lasker_Morris.MILL_LIST:
+            for pos in mill:
+                mills_by_pos[pos].append(mill)
+        return mills_by_pos
+
     def actions(self, state):
         """Return a list of the legal moves at this point."""
         # This will depend on a lot of factors:
@@ -168,7 +181,7 @@ class Lasker_Morris():
         target = sq if hand.startswith('h') else hand
 
         # Check for mills that include the target spot
-        mills_involving_target = [mill for mill in Lasker_Morris.MILL_LIST if target in mill]
+        mills_involving_target = self.mills_by_position[target]
         
         oldMills = [mill for mill in mills_involving_target if all(oldBoard[pos] == player for pos in mill)]
         newMills = [mill for mill in mills_involving_target if all(newBoard[pos] == player for pos in mill)]
@@ -251,6 +264,15 @@ class Lasker_Morris():
         """Return the value of this final state to player."""
 
         opponent = 'blue' if player == 'orange' else 'blue'
+
+        # If the game is over, return a high or low value
+        if self.terminal_test(state):
+            if self.check_win(state, player):
+                return 1000
+            elif self.check_win(state, opponent):
+                return -1000
+            elif state.stalemate_count == stalemate_threshold:
+                return 0
         
         # Determine the game phase
         boardStones = sum(1 for pos in state.board if state.board[pos] == player)
@@ -366,14 +388,6 @@ class Lasker_Morris():
                 weight_moves * (legal_moves_player - legal_moves_opponent) +
                 pos_score)
         
-        # If the game is over, return a high or low value
-        if self.terminal_test(state):
-            if self.check_win(state, player):
-                return 1000
-            elif self.check_win(state, opponent):
-                return -1000
-            elif state.stalemate_count == stalemate_threshold:
-                return 0
         return score
     
     def check_mill(self, board, pos, player):
