@@ -154,9 +154,8 @@ class Lasker_Morris():
         # otherwise, returns all possible moves with given 'A B '
         # first, check if it makes a mill
         oldBoard = state.board.copy()
-        oldMills = sum(1 for mill in Lasker_Morris.MILL_LIST if all(oldBoard[pos] == player for pos in mill))
+        newBoard = oldBoard.copy()        
         
-        newBoard = oldBoard.copy()
         if hand.startswith('h'):
             # Placement move
             newBoard[sq] = player
@@ -164,32 +163,36 @@ class Lasker_Morris():
             # Flying move
             newBoard[sq] = None
             newBoard[hand] = player
-        newMills = sum(1 for mill in Lasker_Morris.MILL_LIST if all(newBoard[pos] == player for pos in mill))
-        if (oldMills == newMills):
-            # returning None if there are no new mills formed by move
-            return None
+
+        # For placement moves you need the sq, for moving moves you need the target spot
+        target = sq if hand.startswith('h') else hand
+
+        # Check for mills that include the target spot
+        mills_involving_target = [mill for mill in Lasker_Morris.MILL_LIST if target in mill]
         
-        # now we know it creates a mill, so 
-        # 1- check all opp positions on new board
-        # 2- check number of opp mills- if all stones are in mills, add all stones,
-        # but if some are in mills, add the non-mills
-        opponent = 'orange' if player == 'blue' else 'blue'
+        oldMills = [mill for mill in mills_involving_target if all(oldBoard[pos] == player for pos in mill)]
+        newMills = [mill for mill in mills_involving_target if all(newBoard[pos] == player for pos in mill)]
 
-        opponent_positions = [pos for pos, mark in newBoard.items() if mark == opponent]
+        # If at least one new mill is formed, you need to make a move that removes a piece
+        if any(mill not in oldMills for mill in newMills):
+            opponent = 'orange' if player == 'blue' else 'blue'
 
-        # get all oppSquares are in mills
-        notMilled = [
-            pos for pos in opponent_positions
-                if not any(pos in mill and all(newBoard[x] == opponent for x in mill)
-                           for mill in Lasker_Morris.MILL_LIST)
-        ]
+            opponent_positions = [pos for pos, mark in newBoard.items() if mark == opponent]
 
-        # if all milled, return all moves with oppSquares
-        # otherwise, return all moves with notMilled
-        if not notMilled:
-            return [f'{hand} {sq} {z}' for z in opponent_positions]
-        
-        return [f'{hand} {sq} {z}' for z in notMilled]
+            # get all oppSquares are in mills
+            notMilled = [
+                pos for pos in opponent_positions
+                    if not any(pos in mill and all(newBoard[x] == opponent for x in mill)
+                            for mill in Lasker_Morris.MILL_LIST)
+            ]
+
+            # if all milled, return all moves with oppSquares
+            # otherwise, return all moves with notMilled
+            if not notMilled:
+                return [f'{hand} {sq} {z}' for z in opponent_positions]
+            
+            return [f'{hand} {sq} {z}' for z in notMilled]
+        return None
         
     def result(self, state, move):
         """Return the state that results from making a move from a state."""
