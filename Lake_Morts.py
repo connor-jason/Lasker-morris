@@ -43,7 +43,7 @@ class Lasker_Morris():
 
         # All positions are initially available for placement by both players- only from hand, and no mills
         # This is in the form of 'h1/h2 a4 r0'
-        moves = [f"{x} {y} {z}" for x in ['h1', 'h2'] 
+        moves = [f"{x} {y} {z}" for x in ['h1'] 
                  for y in self.positions 
                  for z in ['r0']]
         
