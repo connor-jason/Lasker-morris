@@ -261,6 +261,18 @@ class Lasker_Morris():
             elif all(state.board[pos] == opponent for pos in mill):
                 mills_opponent += 1
 
+        # Count potential mills (2 in a row with one empty spot)
+        potential_mills_player = 0
+        potential_mills_opponent = 0
+        for mill in Lasker_Morris.MILL_LIST:
+            pieces_player = sum(1 for pos in mill if state.board[pos] == player)
+            pieces_opponent = sum(1 for pos in mill if state.board[pos] == opponent)
+            empty = sum(1 for pos in mill if state.board[pos] is None)
+            if pieces_player == 2 and empty == 1:
+                potential_mills_player += 1
+            if pieces_opponent == 2 and empty == 1:
+                potential_mills_opponent += 1
+
         # Count the number of pieces for each player
         pieces_player = sum(1 for pos in state.board if state.board[pos] == player)
         pieces_opponent = sum(1 for pos in state.board if state.board[pos] == opponent)
@@ -271,15 +283,15 @@ class Lasker_Morris():
         opponent_state = state._replace(to_move=opponent)
         legal_moves_opponent = len(self.actions(opponent_state))
 
-        # Combine the values into a single score, weights can change depending on testing and such
-        score = 10 * (mills_player - mills_opponent) + 2 * (pieces_player - pieces_opponent) + 0.5 * (legal_moves_player - legal_moves_opponent)
-
+        # Combine the values into a single score (very mill focused), weights can change depending on testing and such
+        score = (20 * (mills_player - mills_opponent) + 10 * (potential_mills_player - potential_mills_opponent) + 2  * (pieces_player - pieces_opponent) + 0.5 * (legal_moves_player - legal_moves_opponent))
+        
         # If the game is over, return a high or low value
         if self.terminal_test(state):
             if self.check_win(state, player):
-                return 100
+                return 1000
             elif self.check_win(state, opponent):
-                return -100
+                return -1000
             elif state.stalemate_count == stalemate_threshold:
                 return 0
         return score
