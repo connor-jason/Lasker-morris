@@ -3,7 +3,7 @@ Peter Cancilla, Abby Haller, Connor Jason
 
 ## A detailed description of what each teammate contributed to the project.
 Abby: Wrote logic for determining moves in Actions, and helper functions adj and getMillMoves for actions. Debugging work later on.
-Connor: Wrote many of the helper functions found in the code. Made the iterative deepening search work properly. Refactored a lot of the code for optimization & readability. Debugged errors for invalid moves.
+Connor: Wrote many of the helper functions found in the code. Made the iterative deepening search work properly. Made the utility function. Refactored a lot of the code for optimization & readability. Debugged errors for invalid moves.
 Peter: Wrote player logic for interacting with the refree. Wrote inital implemementation of alpha-beta-search with iterative deepening. Added in Draw condition.
 
 # Instructions on compiling and running your program.

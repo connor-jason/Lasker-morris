@@ -252,6 +252,82 @@ class Lasker_Morris():
 
         opponent = 'blue' if player == 'orange' else 'blue'
         
+        # Determine the game phase
+        boardStones = sum(1 for pos in state.board if state.board[pos] == player)
+        handStones = 10 - (boardStones + state.removed[player])
+        if handStones > 0:
+            phase = 'placement'
+        elif boardStones == 3:
+            phase = 'flying'
+        else:
+            phase = 'moving'
+
+        # Set weights based on the game phase, weights are pretty arbitrary and are just my best guess
+        if phase == 'placement':
+            weight_mills = 20
+            weight_potential = 14
+            weight_pieces = 5
+            weight_moves = 0.5
+        elif phase == 'moving':
+            weight_mills = 15
+            weight_potential = 6
+            weight_pieces = 2
+            weight_moves = 1
+        else: # flying phase
+            weight_mills = 10
+            weight_potential = 4
+            weight_pieces = 2.5
+            weight_moves = 1.5
+
+        # Optimal board position weights during the placement phase, weights are pretty arbitrary and are just my best guess
+        position_weights = {
+            # Row 1
+            "a1": 0.8,
+            "d1": 1.0,
+            "g1": 0.8,
+
+            # Row 2
+            "b2": 1.0,
+            "d2": 1.4, # Next to d3 intersection
+            "f2": 1.0,
+
+            # Row 3
+            "c3": 1.2, # Corner of inner square
+            "d3": 2.5, # Intersection
+            "e3": 1.2, # Corner of inner square
+
+            # Row 4
+            "a4": 1.0,
+            "b4": 1.4, # Next to c4 intersection
+            "c4": 2.5, # Intersection
+            "e4": 2.5, # Intersection
+            "f4": 1.4, # Next to e4 intersection
+            "g4": 1.0,
+
+            # Row 5
+            "c5": 1.2, # Corner of inner square
+            "d5": 2.5, # Intersection
+            "e5": 1.2, # Corner of inner square
+
+            # Row 6
+            "b6": 1.0,
+            "d6": 1.4, # Next to d5 intersection
+            "f6": 1.0,
+
+            # Row 7
+            "a7": 0.8,
+            "d7": 1.0,
+            "g7": 0.8
+        }
+
+        # Compute positional bonus during placement phase
+        if phase == 'placement':
+            positional_player = sum(position_weights.get(pos, 1.0) for pos in state.board if state.board[pos] == player)
+            positional_opponent = sum(position_weights.get(pos, 1.0) for pos in state.board if state.board[pos] == opponent)
+            pos_score = 4 * (positional_player - positional_opponent)
+        else:
+            pos_score = 0
+
         # Count the number of mills for each player
         mills_player = 0
         mills_opponent = 0
@@ -283,8 +359,12 @@ class Lasker_Morris():
         opponent_state = state._replace(to_move=opponent)
         legal_moves_opponent = len(self.actions(opponent_state))
 
-        # Combine the values into a single score (very mill focused), weights can change depending on testing and such
-        score = (20 * (mills_player - mills_opponent) + 10 * (potential_mills_player - potential_mills_opponent) + 2  * (pieces_player - pieces_opponent) + 0.5 * (legal_moves_player - legal_moves_opponent))
+        # Combine the values into a single score (very mill focused)
+        score = (weight_mills * (mills_player - mills_opponent) +
+                weight_potential * (potential_mills_player - potential_mills_opponent) +
+                weight_pieces * (pieces_player - pieces_opponent) +
+                weight_moves * (legal_moves_player - legal_moves_opponent) +
+                pos_score)
         
         # If the game is over, return a high or low value
         if self.terminal_test(state):
@@ -502,7 +582,7 @@ def main():
             if theState == "INVALID":
                 print("orange player has played an invalid move; blue player wins!", flush=True)
                 sys.exit(0)
-            # Your move logic here
+            # Move logic
             moveX2 = alpha_beta_deepening_search(theState, LM)  # get best move as X
             theState = LM.result(theState, moveX2)
             # Send move to referee
