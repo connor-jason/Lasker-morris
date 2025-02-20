@@ -4,9 +4,9 @@ from collections import namedtuple
 from time import time
 
 #Code from Textbook with some minor modifications
-GameState = namedtuple('GameState', 'to_move, utility, board, moves, removed')
+GameState = namedtuple('GameState', 'to_move, utility, board, moves, removed, stalemate_count')
 time_limit = 5  # seconds
-
+stalemate_threshold = 20
 # Assumptions made:
 # When a mill is created, opponent's piece *must* be removed
 
@@ -48,7 +48,7 @@ class Lasker_Morris():
                  for z in ['r0']]
         
         removed = {'blue': 0, 'orange': 0}
-        self.initial = GameState(to_move='blue', utility=0, board=board, moves=moves, removed=removed)
+        self.initial = GameState(to_move='blue', utility=0, board=board, moves=moves, removed=removed, stalemate_count = 0)
 
     def actions(self, state):
         """Return a list of the legal moves at this point."""
@@ -210,12 +210,15 @@ class Lasker_Morris():
 
         # If this is a removal move (partC is not r0), remove the piece
         if partC != "r0":
+            new_stalemate_count = 0
             # Validate that the move is valid
             if new_board.get(partC) != opponent:
                 return "INVALID"
             # Remove the opponent's piece
             new_board[partC] = None
             new_removed[opponent] += 1
+        else:
+            new_stalemate_count = state.stalemate_count + 1
 
         # In a placement move, partA is a hand marker and partB is the target
         # In a moving/flying move, partA is the start and partB is the end
@@ -239,7 +242,7 @@ class Lasker_Morris():
         next_player = opponent
 
         # Create a new state with a utility of 0 then update it by using the utility function
-        new_state = GameState(to_move=next_player, utility=0, board=new_board, moves=new_moves, removed=new_removed)
+        new_state = GameState(to_move=next_player, utility=0, board=new_board, moves=new_moves, removed=new_removed, stalemate_count=new_stalemate_count)
         new_state = new_state._replace(utility=self.utility(new_state, new_state.to_move))
 
         return new_state
@@ -248,7 +251,7 @@ class Lasker_Morris():
         """Return the value of this final state to player."""
 
         opponent = 'blue' if player == 'orange' else 'blue'
-
+        
         # Count the number of mills for each player
         mills_player = 0
         mills_opponent = 0
@@ -277,9 +280,8 @@ class Lasker_Morris():
                 return 100
             elif self.check_win(state, opponent):
                 return -100
-            else:
+            elif state.stalemate_count == stalemate_threshold:
                 return 0
-
         return score
     
     def check_mill(self, board, pos, player):
@@ -315,6 +317,8 @@ class Lasker_Morris():
 
     def terminal_test(self, state):
         """Return True if this is a final state for the game."""
+        if state.stalemate_count == stalemate_threshold:
+            return True
         return not self.actions(state)
 
     def to_move(self, state):
