@@ -99,7 +99,7 @@ class Lasker_Morris():
                 for adj in adjSqs:
                     millMoves = self.getMillMoves(state, adj, sq, curPlayer)
                     if millMoves is None:
-                        moves.append(f'{adj} {sq} r0')
+                        moves.append(f'{sq} {adj} r0')
                     else:
                         moves.extend(millMoves)
 
@@ -111,7 +111,7 @@ class Lasker_Morris():
                 for empty in emptySquares:
                     millMoves = self.getMillMoves(state, empty, sq, curPlayer)
                     if millMoves is None:
-                        moves.append(f'{empty} {sq} r0')
+                        moves.append(f'{sq} {empty} r0')
                     else:
                         for move in millMoves:
                             moves.append(move)
@@ -215,7 +215,7 @@ class Lasker_Morris():
             new_removed[opponent] += 1
 
         # In a placement move, partA is a hand marker and partB is the target
-        # In a moving/flying move, partA is the end and partB is the start
+        # In a moving/flying move, partA is the start and partB is the end
         # If partA starts with 'h', it's a placement, else it's a flying move
         if partA.startswith('h'):
             # Placement move
@@ -349,7 +349,7 @@ def alpha_beta_deepening_search(state, game):
         actions = game.actions(state)
         if actions:
             best_action = actions[0]
-            
+
     return best_action
 
 def alpha_beta_search(state, game, depth, start_time, memo_states, safe_margin):
