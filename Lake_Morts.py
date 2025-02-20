@@ -157,7 +157,13 @@ class Lasker_Morris():
         oldMills = sum(1 for mill in Lasker_Morris.MILL_LIST if all(oldBoard[pos] == player for pos in mill))
         
         newBoard = oldBoard.copy()
-        newBoard[sq] = player
+        if hand.startswith('h'):
+            # Placement move
+            newBoard[sq] = player
+        else:
+            # Flying move
+            newBoard[sq] = None
+            newBoard[hand] = player
         newMills = sum(1 for mill in Lasker_Morris.MILL_LIST if all(newBoard[pos] == player for pos in mill))
         if (oldMills == newMills):
             # returning None if there are no new mills formed by move
@@ -218,10 +224,10 @@ class Lasker_Morris():
             new_board[partB] = current_player
         else:
             # Flying move
-            if new_board.get(partB) != current_player or new_board.get(partA) is not None:
+            if new_board.get(partA) != current_player or new_board.get(partB) is not None:
                 return "INVALID"
-            new_board[partB] = None
-            new_board[partA] = current_player
+            new_board[partA] = None
+            new_board[partB] = current_player
             
         # Remove the move from the list of available moves
         new_moves = [m for m in state.moves if m != move]
