@@ -4,7 +4,7 @@ Abby Haller, Connor Jason, Peter Cancilla
 ## A detailed description of what each teammate contributed to the project.
 Abby: Wrote logic for determining moves in Actions, and helper functions adj and getMillMoves for actions. Debugging work later on.
 Connor:
-Peter:
+Peter: Wrote player logic for interacting with the refree. Wrote inital implemementation of alpha-beta-search with iterative deepening. Added in Draw condition.
 
 # Instructions on compiling and running your program.
 To run in terminal:
@@ -17,8 +17,10 @@ To run with referee:
 Our utility function is called utility
 
 # The evaluation function that your program uses.
+Our utility function doubles as our evaluation function(?)
 
 # The heuristics and/or strategies that you employed to decide how to expand nodes of the minimax tree without exceeding your time limit.
+Iterative deepening
 
 # Results: 
 
