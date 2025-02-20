@@ -344,6 +344,12 @@ def alpha_beta_deepening_search(state, game):
         if current_best is not None:
             best_action = current_best
         depth += 1
+
+    if best_action is None:
+        actions = game.actions(state)
+        if actions:
+            best_action = actions[0]
+            
     return best_action
 
 def alpha_beta_search(state, game, depth, start_time, memo_states, safe_margin):
