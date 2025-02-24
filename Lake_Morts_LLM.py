@@ -2,6 +2,22 @@ import math
 import sys
 from collections import namedtuple
 from time import time
+import os
+from dotenv import load_dotenv
+from google import genai
+
+# Load .env vars
+load_dotenv()
+
+# Get API key from .env file
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+client = genai.Client(api_key=GEMINI_API_KEY)
+
+def call_llm(prompt):
+    response = client.models.generate_content(
+         model="gemini-2.0-flash", contents=prompt
+    )
+    return response.text
 
 #Code from Textbook with some minor modifications
 GameState = namedtuple('GameState', 'to_move, utility, board, moves, removed, stalemate_count')
