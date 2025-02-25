@@ -5,6 +5,7 @@ from time import time
 import os
 from dotenv import load_dotenv
 from google import genai
+import re
 
 # Load .env vars
 load_dotenv()
@@ -21,8 +22,9 @@ def call_llm(prompt):
 
 #Code from Textbook with some minor modifications
 GameState = namedtuple('GameState', 'to_move, utility, board, moves, removed, stalemate_count')
-time_limit = 5  # seconds
+time_limit = 60  # seconds
 stalemate_threshold = 20
+safe_margin = 0.02  # Send the move 0.02 seconds before the time limit
 # Assumptions made:
 # When a mill is created, opponent's piece *must* be removed
 
@@ -488,10 +490,21 @@ def main():
             # this is initial, might want to tweak prompt
             newPrompt = makePrompt(theState, None)
             # then pass to AI
+            start_time = time()
             response = call_llm(newPrompt)
-            # TODO: parse response here
-            # TODO: then double check it was valid (move is in state.moves)
-            # TODO: then add to gamestate (LM.result(move))
+                # TODO: parse response here
+            pieces = re.split(r'[()]+', response) 
+            AImove = pieces[1] #the second string should contain the move
+                # TODO: then double check it was valid (move is in state.moves)
+            while LM.result(theState, reformatAImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
+                rePrompt = makePrompt(theState, opponent_inputX)
+                response2 = call_llm(rePrompt)
+                # TODO: parse response here
+                pieces = re.split(r'[()]+', response2) 
+                AImove = pieces[1] #the second string should contain the move
+                # TODO: then add to gamestate (LM.result(move))
+            theState = LM.result(theState, AImove2)
+            print(AImove, flush=True)
             first_move_made += 1
 
 
@@ -504,15 +517,27 @@ def main():
                 if theState == "INVALID":
                     print("blue player has played an invalid move; orange player wins!", flush=True)
                     sys.exit(0)
+                    
                 # LLM move selection should replace the removed minimax call here
                 # first create prompt
+                start_time = time()
                 newPrompt = makePrompt(theState, opponent_inputX)
                 # then pass to AI
                 response = call_llm(newPrompt)
                 # TODO: parse response here
+                pieces = re.split(r'[()]+', response) 
+                AImove = pieces[1] #the second string should contain the move
                 # TODO: then double check it was valid (move is in state.moves)
+                while LM.result(theState, reformatAImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
+                    rePrompt = makePrompt(theState, opponent_inputX)
+                    response = call_llm(rePrompt)
+                # TODO: parse response here
+                    pieces = re.split(r'[()]+', response) 
+                    AImove = pieces[1] #the second string should contain the move
                 # TODO: then add to gamestate (LM.result(move))
-
+                theState = LM.result(theState, AImove)
+                print(AImove, flush=True)
+                
                 if LM.terminal_test(theState) and theState.utility == 100:
                     print("GAME OVER: orange player wins!")
                     sys.exit(0)
@@ -524,19 +549,31 @@ def main():
             if theState == "INVALID":
                 print("orange player has played an invalid move; blue player wins!", flush=True)
                 sys.exit(0)
+                
             # LLM move selection should replace the removed minimax call here
             # first create prompt
-            newPrompt = makePrompt(theState, opponent_inputO)
+            start_time = time()
+            newPrompt = makePrompt(theState, opponent_inputX)
             # then pass to AI
             response = call_llm(newPrompt)
             # TODO: parse response here
+            pieces = re.split(r'[()]+', response) 
+            AImove = pieces[1] #the second string should contain the move
             # TODO: then double check it was valid (move is in state.moves)
-            # TODO: then add to gamestate (LM.result(move))
-            
+            while LM.result(theState, reformatAImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
+                rePrompt = makePrompt(theState, opponent_inputX)
+                response = call_llm(rePrompt)
+                # TODO: parse response here
+                pieces = re.split(r'[()]+', response) 
+                AImove = pieces[1] #the second string should contain the move
+                # TODO: then add to gamestate (LM.result(move))
+            theState = LM.result(theState, AImove2)
+            print(AImove, flush=True)
+                
             if LM.terminal_test(theState) and theState.utility == 100:
                 print("GAME OVER: blue player wins!")
                 sys.exit(0)
-
+                
             if LM.terminal_test(theState) and theState.utility == 0:
                 print("GAME OVER: it's a draw!")
                 sys.exit(0)
