@@ -454,6 +454,25 @@ class Lasker_Morris():
     def __repr__(self):
         return '<{}>'.format(self.__class__.__name__)
 
+
+def makePrompt(state, lastMove):
+    # lastMove is in here because canvas instructions asked for it, but dont think we need
+    # ('GameState', 'to_move, utility, board, moves, removed, stalemate_count')
+    player = state.to_move
+    board = state.board
+    boardStones = sum(1 for pos, val in state.board.items() if val == player)
+    stonesRemoved = state.removed[player]
+    handStones = 10 - (boardStones + stonesRemoved)
+    moves = state.moves
+
+    intro = "Hello, you are playing a game of Lasker Morris. The rules will be summarized below: There are two players: blue and orange. Each player has 10 stones in their hand at the start of the game. The initial board is set up as so: [a1: None, a4: None, a7: None, b2: None, b4: None, b6: None, c3: None, c4: None, c5: None, d1: None, d2: None, d3: None, d5: None, d6: None, d7: None, e3: None, e4: None, e5: None, f2: None, f4: None, f6: None, g1: None, g4: None, g7: None]. A mill is formed when three stones of the same color are placed on the board that are aligned contiguously vertically or horizontally. Here is the list of mill combinations: (a1, a4, a7), (a7, d7, g7), (g7, g4, g1), (a1, d1, g1), (b2, d2, f2), (b2, b4, b6), (b6, d6, f6), (f6, f4, f2), (a4, b4, c4), (e4, f4, g4), (d1, d2, d3), (d5, d6, d7), (c3, d3, e3), (c3, c4, c5), (c5, d5, e5), (e5, e4, e3). A valid move consists of three parts (A B C): A is the current location of the stone to be moved (either the player's hand, h1 if blue and h2 if orange, or a stone already on the board). B is the location on the board where the stone is to be moved to, and these two things must be true: 1) B must be an empty board point, and 2) If A is a board location and the player making the move has more than 3 remaining stones total (on the board plus in its hand), then B has to be adjacent (= contiguous) to A. If A is a board location and the player making the move has 3 remaining stones total (all on the board, 0 remaining in its hand), then B can be any empty point on the board (i.e., the stone at A can fly to location B). C will be r0 unless a new mill was made, in which case C is the position of the opponent's stone that will be removed permanently from the game." 
+    # describe rules
+    # describe rules of moves
+    # describe current player, current board, current removed, list of moves
+    curInfo = "You are currently playing as " + player + " player. This is your board configuration: " + str(board) + ". You have " + str(handStones) + " stones in your hand. Here is your list of moves: " + str(moves) + ". Please produce the next best move from this list of moves, and tell us the move in (A B C) format: for example, (h1 d2 r0)."
+    # tell it to give a response that only consists of the move
+    return intro + " " + curInfo
+
 def main():
     # Read initial color/symbol
     player_id = input().strip()
@@ -471,6 +490,11 @@ def main():
                     print("blue player has played an invalid move; orange player wins!", flush=True)
                     sys.exit(0)
                 # LLM move selection should replace the removed minimax call here
+                # first create prompt
+                newPrompt = makePrompt(theState, opponent_inputX)
+                # then pass to AI
+                # then double check it was valid (move is in state.moves)
+
                 if LM.terminal_test(theState) and theState.utility == 100:
                     print("GAME OVER: orange player wins!")
                     sys.exit(0)
@@ -483,6 +507,11 @@ def main():
                 print("orange player has played an invalid move; blue player wins!", flush=True)
                 sys.exit(0)
             # LLM move selection should replace the removed minimax call here
+            # first create prompt
+            newPrompt = makePrompt(theState, opponent_inputO)
+            # then pass to AI
+            # then double check it was valid (move is in state.moves)
+            
             if LM.terminal_test(theState) and theState.utility == 100:
                 print("GAME OVER: blue player wins!")
                 sys.exit(0)
