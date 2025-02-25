@@ -498,12 +498,12 @@ def main():
                 # TODO: then double check it was valid (move is in state.moves)
             while LM.result(theState, reformatAImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
                 rePrompt = makePrompt(theState, opponent_inputX)
-                response2 = call_llm(rePrompt)
+                response = call_llm(rePrompt)
                 # TODO: parse response here
-                pieces = re.split(r'[()]+', response2) 
+                pieces = re.split(r'[()]+', response) 
                 AImove = pieces[1] #the second string should contain the move
                 # TODO: then add to gamestate (LM.result(move))
-            theState = LM.result(theState, AImove2)
+            theState = LM.result(theState, AImove)
             print(AImove, flush=True)
             first_move_made += 1
 
@@ -528,7 +528,7 @@ def main():
                 pieces = re.split(r'[()]+', response) 
                 AImove = pieces[1] #the second string should contain the move
                 # TODO: then double check it was valid (move is in state.moves)
-                while LM.result(theState, reformatAImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
+                while LM.result(theState, AImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
                     rePrompt = makePrompt(theState, opponent_inputX)
                     response = call_llm(rePrompt)
                 # TODO: parse response here
@@ -560,14 +560,14 @@ def main():
             pieces = re.split(r'[()]+', response) 
             AImove = pieces[1] #the second string should contain the move
             # TODO: then double check it was valid (move is in state.moves)
-            while LM.result(theState, reformatAImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
+            while LM.result(theState, AImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
                 rePrompt = makePrompt(theState, opponent_inputX)
                 response = call_llm(rePrompt)
                 # TODO: parse response here
                 pieces = re.split(r'[()]+', response) 
                 AImove = pieces[1] #the second string should contain the move
                 # TODO: then add to gamestate (LM.result(move))
-            theState = LM.result(theState, AImove2)
+            theState = LM.result(theState, AImove)
             print(AImove, flush=True)
                 
             if LM.terminal_test(theState) and theState.utility == 100:
