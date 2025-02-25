@@ -478,8 +478,23 @@ def main():
     player_id = input().strip()
     LM = Lasker_Morris()
     theState = LM.initial  # gamestate
+    first_move_made = 0
 
     while True:
+        # first move logic
+        if player_id == "blue" and first_move_made == 0:
+            # LLM move selection should replace the removed minimax call here
+            # first create prompt (currently has move as none bc first move?)
+            # this is initial, might want to tweak prompt
+            newPrompt = makePrompt(theState, None)
+            # then pass to AI
+            response = call_llm(newPrompt)
+            # TODO: parse response here
+            # TODO: then double check it was valid (move is in state.moves)
+            # TODO: then add to gamestate (LM.result(move))
+            first_move_made += 1
+
+
         try:
             if player_id == "orange":
                 # Read opponent's move
@@ -493,7 +508,10 @@ def main():
                 # first create prompt
                 newPrompt = makePrompt(theState, opponent_inputX)
                 # then pass to AI
-                # then double check it was valid (move is in state.moves)
+                response = call_llm(newPrompt)
+                # TODO: parse response here
+                # TODO: then double check it was valid (move is in state.moves)
+                # TODO: then add to gamestate (LM.result(move))
 
                 if LM.terminal_test(theState) and theState.utility == 100:
                     print("GAME OVER: orange player wins!")
@@ -510,7 +528,10 @@ def main():
             # first create prompt
             newPrompt = makePrompt(theState, opponent_inputO)
             # then pass to AI
-            # then double check it was valid (move is in state.moves)
+            response = call_llm(newPrompt)
+            # TODO: parse response here
+            # TODO: then double check it was valid (move is in state.moves)
+            # TODO: then add to gamestate (LM.result(move))
             
             if LM.terminal_test(theState) and theState.utility == 100:
                 print("GAME OVER: blue player wins!")
