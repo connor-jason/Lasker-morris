@@ -292,9 +292,10 @@ class Lasker_Morris():
 
         # Create a new state with a utility of 0 then update it by using the utility function
         new_state = GameState(to_move=next_player, utility=0, board=new_board, moves=new_moves, removed=new_removed, stalemate_count=new_stalemate_count)
-        new_state = new_state._replace(utility=self.utility(new_state, new_state.to_move))
+        new_state = new_state._replace(moves=self.actions(new_state))
+        newest_state = new_state._replace(utility=self.utility(new_state, new_state.to_move))
 
-        return new_state
+        return newest_state
 
     def utility(self, state, player):
         """Return the value of this final state to player."""
@@ -476,7 +477,6 @@ class Lasker_Morris():
 
 
 def makePrompt(state):
-    # lastMove is in here because canvas instructions asked for it, but dont think we need
     # ('GameState', 'to_move, utility, board, moves, removed, stalemate_count')
     player = state.to_move
     board = state.board
@@ -506,120 +506,83 @@ def makePrompt(state):
     
     instructions = (
         "Please perform the following:\n"
-        "1. Provide your logical reasoning for which move to select, explaining your thought process using the game state information provided.\n"
+        "1. Provide your logical reasoning for which move to select, explaining your thought process using the game state information provided. Prioritize moves that make a mill, where C is not r0.\n"
         "2. At the end, output the final move in (A B C) format (for example, 'h1 d2 r0') without any extra commentary.\n"
         "Remember: Your reasoning should be detailed, but the final output must be a single valid move from the list of available moves."
     )
 
     return rules + "\n" + current_state + "\n" + instructions
 
+# small helper for print statements
+def oppPlayer(p):
+    if (p == 'orange'):
+        return 'blue'
+    return 'orange'
+
+# small helper for finding end
+def endStatements(theState, LM):
+    if LM.terminal_test(theState) and theState.utility == 100:
+        print("GAME OVER: blue player wins!")
+        sys.exit(0)
+    if LM.terminal_test(theState) and theState.utility == 0:
+        print("GAME OVER: it's a draw!")
+        sys.exit(0)
+    if LM.terminal_test(theState) and theState.utility == -100:
+        print("GAME OVER: orange player wins!")
+        sys.exit(0)
+
 def main():
     # Read initial color/symbol
     player_id = input().strip()
     LM = Lasker_Morris()
     theState = LM.initial  # gamestate
-    first_move_made = 0
+
+    # first move logic
+    if player_id == "blue":
+        # first create prompt
+        newPrompt = makePrompt(theState)
+        # then pass to AI
+        start_time = time()
+        response = call_llm(newPrompt)
+        AImove = extract_move(response)
+        while AImove not in theState.moves and time()-start_time < time_limit - safe_margin:
+            response = call_llm(newPrompt)
+            AImove = extract_move(response)
+        print(AImove, flush=True)
+        # then add to gamestate
+        theState = LM.result(theState, AImove)
 
     while True:
-        # first move logic
-        if player_id == "blue" and first_move_made == 0:
-            # LLM move selection should replace the removed minimax call here
-            # first create prompt (currently has move as none bc first move?)
-            # this is initial, might want to tweak prompt
-            newPrompt = makePrompt(theState)
-            # then pass to AI
-            start_time = time()
-            response = call_llm(newPrompt)
-            print(extract_move(response), flush=True)
-            break
-                # TODO: parse response here
-            pieces = re.split(r'[()]+', response) 
-            AImove = pieces[1] #the second string should contain the move
-                # TODO: then double check it was valid (move is in state.moves)
-            while LM.result(theState, reformatAImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
-                rePrompt = makePrompt(theState)
-                response = call_llm(rePrompt)
-                # TODO: parse response here
-                pieces = re.split(r'[()]+', response) 
-                AImove = pieces[1] #the second string should contain the move
-                # TODO: then add to gamestate (LM.result(move))
-            theState = LM.result(theState, AImove)
-            print(AImove, flush=True)
-            first_move_made += 1
-
-
         try:
-            if player_id == "orange":
-                # Read opponent's move
-                opponent_inputX = input().strip()  # opponent move as X/blue
-                # update internal board with opponent move
-                theState = LM.result(theState, opponent_inputX)
-                if theState == "INVALID":
-                    print("blue player has played an invalid move; orange player wins!", flush=True)
-                    sys.exit(0)
-                    
-                # LLM move selection should replace the removed minimax call here
-                # first create prompt
-                start_time = time()
-                newPrompt = makePrompt(theState)
-                # then pass to AI
-                response = call_llm(newPrompt)
-                # TODO: parse response here
-                pieces = re.split(r'[()]+', response) 
-                AImove = pieces[1] #the second string should contain the move
-                # TODO: then double check it was valid (move is in state.moves)
-                while LM.result(theState, AImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
-                    rePrompt = makePrompt(theState)
-                    response = call_llm(rePrompt)
-                # TODO: parse response here
-                    pieces = re.split(r'[()]+', response) 
-                    AImove = pieces[1] #the second string should contain the move
-                # TODO: then add to gamestate (LM.result(move))
-                theState = LM.result(theState, AImove)
-                print(AImove, flush=True)
-                
-                if LM.terminal_test(theState) and theState.utility == 100:
-                    print("GAME OVER: orange player wins!")
-                    sys.exit(0)
-
             # Read opponent's move
-            opponent_inputO = input().strip()  # opponent move as O
+            oppMove = input().strip()  # opponent move
+            opp = theState.to_move
             # update internal board with opponent move
-            theState = LM.result(theState, opponent_inputO)
+            theState = LM.result(theState, oppMove)
             if theState == "INVALID":
-                print("orange player has played an invalid move; blue player wins!", flush=True)
+                print("" + opp + " player has played an invalid move; " + oppPlayer(opp) + " player wins!", flush=True)
                 sys.exit(0)
-                
-            # LLM move selection should replace the removed minimax call here
+            endStatements(theState, LM)
+            
             # first create prompt
-            start_time = time()
             newPrompt = makePrompt(theState)
             # then pass to AI
+            start_time = time()
             response = call_llm(newPrompt)
-            # TODO: parse response here
-            pieces = re.split(r'[()]+', response) 
-            AImove = pieces[1] #the second string should contain the move
-            # TODO: then double check it was valid (move is in state.moves)
-            while LM.result(theState, AImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
-                rePrompt = makePrompt(theState)
-                response = call_llm(rePrompt)
-                # TODO: parse response here
-                pieces = re.split(r'[()]+', response) 
-                AImove = pieces[1] #the second string should contain the move
-                # TODO: then add to gamestate (LM.result(move))
-            theState = LM.result(theState, AImove)
+            AImove = extract_move(response)
+            while AImove not in theState.moves and time()-start_time < time_limit - safe_margin:
+                response = call_llm(newPrompt)
+                AImove = extract_move(response)
             print(AImove, flush=True)
-                
-            if LM.terminal_test(theState) and theState.utility == 100:
-                print("GAME OVER: blue player wins!")
+            # then add to gamestate
+            theState = LM.result(theState, AImove)
+            if theState == "INVALID":
+                print("" + opp + " player has played an invalid move; " + oppPlayer(opp) + " player wins!", flush=True)
                 sys.exit(0)
-                
-            if LM.terminal_test(theState) and theState.utility == 0:
-                print("GAME OVER: it's a draw!")
-                sys.exit(0)
+            endStatements(theState, LM)
+
         except Exception as e:
             print("Error:", e)
             sys.exit(1)
-
 if __name__ == "__main__":
     main()
