@@ -457,7 +457,7 @@ class Lasker_Morris():
         return '<{}>'.format(self.__class__.__name__)
 
 
-def makePrompt(state, lastMove):
+def makePrompt(state):
     # lastMove is in here because canvas instructions asked for it, but dont think we need
     # ('GameState', 'to_move, utility, board, moves, removed, stalemate_count')
     player = state.to_move
@@ -508,7 +508,7 @@ def main():
             # LLM move selection should replace the removed minimax call here
             # first create prompt (currently has move as none bc first move?)
             # this is initial, might want to tweak prompt
-            newPrompt = makePrompt(theState, None)
+            newPrompt = makePrompt(theState)
             # then pass to AI
             start_time = time()
             response = call_llm(newPrompt)
@@ -517,7 +517,7 @@ def main():
             AImove = pieces[1] #the second string should contain the move
                 # TODO: then double check it was valid (move is in state.moves)
             while LM.result(theState, reformatAImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
-                rePrompt = makePrompt(theState, opponent_inputX)
+                rePrompt = makePrompt(theState)
                 response = call_llm(rePrompt)
                 # TODO: parse response here
                 pieces = re.split(r'[()]+', response) 
@@ -541,7 +541,7 @@ def main():
                 # LLM move selection should replace the removed minimax call here
                 # first create prompt
                 start_time = time()
-                newPrompt = makePrompt(theState, opponent_inputX)
+                newPrompt = makePrompt(theState)
                 # then pass to AI
                 response = call_llm(newPrompt)
                 # TODO: parse response here
@@ -549,7 +549,7 @@ def main():
                 AImove = pieces[1] #the second string should contain the move
                 # TODO: then double check it was valid (move is in state.moves)
                 while LM.result(theState, AImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
-                    rePrompt = makePrompt(theState, opponent_inputX)
+                    rePrompt = makePrompt(theState)
                     response = call_llm(rePrompt)
                 # TODO: parse response here
                     pieces = re.split(r'[()]+', response) 
@@ -573,7 +573,7 @@ def main():
             # LLM move selection should replace the removed minimax call here
             # first create prompt
             start_time = time()
-            newPrompt = makePrompt(theState, opponent_inputX)
+            newPrompt = makePrompt(theState)
             # then pass to AI
             response = call_llm(newPrompt)
             # TODO: parse response here
@@ -581,7 +581,7 @@ def main():
             AImove = pieces[1] #the second string should contain the move
             # TODO: then double check it was valid (move is in state.moves)
             while LM.result(theState, AImove) == "INVALID" and time()-start_time < time_limit - safe_margin:
-                rePrompt = makePrompt(theState, opponent_inputX)
+                rePrompt = makePrompt(theState)
                 response = call_llm(rePrompt)
                 # TODO: parse response here
                 pieces = re.split(r'[()]+', response) 
