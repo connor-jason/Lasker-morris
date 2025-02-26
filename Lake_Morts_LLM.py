@@ -20,6 +20,24 @@ def call_llm(prompt):
     )
     return response.text
 
+def extract_move(response_text):
+    """
+    Regex looks for: "h1 d2 r0" or "a4 d5 r0" format with a space in between
+    Explanation for ur clarity:
+    - ?: lets you group alternatives together separated by |
+    - h[12] matches h1 or h2
+    - [a-g][1-7] matches a1, a2, b1, b2, etc.
+    - r0 matches r0
+    - \s+ matches one or more whitespace characters
+    """
+    pattern = r'((?:h[12]|[a-g][1-7])\s+(?:[a-g][1-7])\s+(?:r0|[a-g][1-7]))'
+    matches = re.findall(pattern, response_text)
+    if matches:
+        # Return the last occurrence found, should be the "final choice" by the model
+        return matches[-1].strip()
+    else:
+        return None
+
 #Code from Textbook with some minor modifications
 GameState = namedtuple('GameState', 'to_move, utility, board, moves, removed, stalemate_count')
 time_limit = 60  # seconds
@@ -512,6 +530,8 @@ def main():
             # then pass to AI
             start_time = time()
             response = call_llm(newPrompt)
+            print(extract_move(response), flush=True)
+            break
                 # TODO: parse response here
             pieces = re.split(r'[()]+', response) 
             AImove = pieces[1] #the second string should contain the move
