@@ -1,6 +1,9 @@
 # Lasker Morris
 
 # Instructions on compiling and running your program.
+For this code to run, you must first create a .env file with the following:
+``` GEMINI_API_KEY='YOUR API KEY' ```
+
 To run in terminal:
 ``` python Lake_Morts.py ```
 
