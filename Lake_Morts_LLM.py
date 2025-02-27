@@ -507,7 +507,7 @@ def makePrompt(state):
     
     instructions = (
         "Please perform the following:\n"
-        "1. Provide your logical reasoning for which move to select, explaining your thought process using the game state information provided. Prioritize moves that make a mill, where C is not r0.\n"
+        "1. Provide your logical reasoning for which move to select, explaining your thought process using the game state information provided. Prioritize moves that make a mill.\n"
         "2. At the end, output the final move in (A B C) format (for example, 'h1 d2 r0') without any extra commentary.\n"
         "Remember: Your reasoning should be detailed, but the final output must be a single valid move from the list of available moves."
     )
@@ -516,20 +516,18 @@ def makePrompt(state):
 
 # small helper for print statements
 def oppPlayer(p):
-    if (p == 'orange'):
-        return 'blue'
-    return 'orange'
+    return 'blue' if p == 'orange' else 'orange'
 
 # small helper for finding end
 def endStatements(theState, LM):
-    if LM.terminal_test(theState) and theState.utility == 100:
-        print("GAME OVER: blue player wins!")
-        sys.exit(0)
-    if LM.terminal_test(theState) and theState.utility == 0:
-        print("GAME OVER: it's a draw!")
-        sys.exit(0)
-    if LM.terminal_test(theState) and theState.utility == -100:
-        print("GAME OVER: orange player wins!")
+    if LM.terminal_test(theState):
+        match theState.utility:
+            case 100:
+                print("GAME OVER: blue player wins!")
+            case 0:
+                print("GAME OVER: it's a draw!")
+            case -100:
+                print("GAME OVER: orange player wins!")
         sys.exit(0)
 
 def main():
