@@ -159,7 +159,8 @@ class Lasker_Morris():
             pSquares = [pos for pos, occupant in state.board.items() if occupant == curPlayer]
             for sq in pSquares:
                 for empty in emptySquares:
-                    millMoves = self.getMillMoves(state, empty, sq, curPlayer)
+                    # call millMoves with state, square its coming from, square its going to, currentPlayer
+                    millMoves = self.getMillMoves(state, sq, empty, curPlayer)
                     if millMoves is None:
                         moves.append(f'{sq} {empty} r0')
                     else:
@@ -211,8 +212,8 @@ class Lasker_Morris():
             newBoard[sq] = player
         else:
             # Flying move
-            newBoard[sq] = None
-            newBoard[hand] = player
+            newBoard[sq] = player
+            newBoard[hand] = None
 
         # For placement moves you need the sq, for moving moves you need the target spot
         target = sq if hand.startswith('h') else hand
@@ -402,6 +403,14 @@ def main():
     player_id = input().strip()
     LM = Lasker_Morris()
     theState = LM.initial  # gamestate
+
+    # testing purposes
+    # print(theState)
+    # fakeState = GameState(to_move='blue', utility=0, board={'a1': None, 'a4': None, 'a7': None, 'b2': 'orange', 'b4': None, 'b6': None, 'c3': None, 'c4': None, 'c5': None, 'd1': 'orange', 'd2': 'blue', 'd3': 'blue', 'd5': None, 'd6': None, 'd7': None, 'e3': None, 'e4': None, 'e5': None, 'f2': 'blue', 'f4': None, 'f6': None, 'g1': 'orange', 'g4': None, 'g7': None}, 
+    #           moves=['h1 a1 r0'], removed={'blue': 7, 'orange': 7}, stalemate_count=0)
+    # newMove = 'd3 c3 r0'
+    # theState = LM.result(fakeState, newMove)
+    # print(theState)
 
     # first move logic
     if player_id == "blue":
