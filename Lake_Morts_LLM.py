@@ -308,16 +308,6 @@ class Lasker_Morris():
             else:
                 return 0  # tie/stalemate
         return 1 # non-terminal states get an arbitrary value
-    
-    def check_mill(self, board, pos, player):
-        """
-        Check if the move at a given position forms a mill for the player
-        """
-        mills_formed = []
-        for mill in Lasker_Morris.MILL_LIST:
-            if pos in mill and all(board[p] == player for p in mill):
-                mills_formed.append(mill)
-        return mills_formed
 
     def check_win(self, state, player):
         """
@@ -349,10 +339,6 @@ class Lasker_Morris():
     def to_move(self, state):
         """Return the player whose move it is in this state."""
         return state.to_move
-
-    def display(self, state):
-        """Print or otherwise display the state."""
-        print(state)
 
     def __repr__(self):
         return '<{}>'.format(self.__class__.__name__)
