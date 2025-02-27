@@ -285,6 +285,16 @@ class Lasker_Morris():
                 return "INVALID"
             new_board[partA] = None
             new_board[partB] = current_player
+
+        # Check if a mill was formed
+        mills_involving_target = self.mills_by_position.get(partB, [])
+        # Compute the mills that were present before making the move
+        oldMills = [mill for mill in mills_involving_target if all(state.board.get(pos) == current_player for pos in mill)]
+        # Compute the mills present after making the move
+        newMills = [mill for mill in mills_involving_target if all(new_board.get(pos) == current_player for pos in mill)]
+        # If a new mill is formed but no removal was specified, the move is invalid
+        if any(mill not in oldMills for mill in newMills) and partC == "r0":
+            return "INVALID"
             
         # Remove the move from the list of available moves
         new_moves = [m for m in state.moves if m != move]
@@ -403,14 +413,6 @@ def main():
     player_id = input().strip()
     LM = Lasker_Morris()
     theState = LM.initial  # gamestate
-
-    # testing purposes
-    # print(theState)
-    # fakeState = GameState(to_move='blue', utility=0, board={'a1': None, 'a4': None, 'a7': None, 'b2': 'orange', 'b4': None, 'b6': None, 'c3': None, 'c4': None, 'c5': None, 'd1': 'orange', 'd2': 'blue', 'd3': 'blue', 'd5': None, 'd6': None, 'd7': None, 'e3': None, 'e4': None, 'e5': None, 'f2': 'blue', 'f4': None, 'f6': None, 'g1': 'orange', 'g4': None, 'g7': None}, 
-    #           moves=['h1 a1 r0'], removed={'blue': 7, 'orange': 7}, stalemate_count=0)
-    # newMove = 'd3 c3 r0'
-    # theState = LM.result(fakeState, newMove)
-    # print(theState)
 
     # first move logic
     if player_id == "blue":

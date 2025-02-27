@@ -247,6 +247,16 @@ class Lasker_Morris():
                 return "INVALID"
             new_board[partA] = None
             new_board[partB] = current_player
+
+        # Check if a mill was formed
+        mills_involving_target = self.mills_by_position.get(partB, [])
+        # Compute the mills that were present before making the move
+        oldMills = [mill for mill in mills_involving_target if all(state.board.get(pos) == current_player for pos in mill)]
+        # Compute the mills present after making the move
+        newMills = [mill for mill in mills_involving_target if all(new_board.get(pos) == current_player for pos in mill)]
+        # If a new mill is formed but no removal was specified, the move is invalid
+        if any(mill not in oldMills for mill in newMills) and partC == "r0":
+            return "INVALID"
             
         # Remove the move from the list of available moves
         new_moves = [m for m in state.moves if m != move]
