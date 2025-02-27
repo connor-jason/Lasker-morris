@@ -15,7 +15,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 def call_llm(prompt):
-    sleep(4.5)
+    sleep(5)
     response = client.models.generate_content(
          model="gemini-2.0-flash", contents=prompt
     )
@@ -43,7 +43,7 @@ def extract_move(response_text):
 GameState = namedtuple('GameState', 'to_move, utility, board, moves, removed, stalemate_count')
 time_limit = 60  # seconds
 stalemate_threshold = 20
-safe_margin = 0.02  # Send the move 0.02 seconds before the time limit
+safe_margin = 10  # 10 second safe margin
 # Assumptions made:
 # When a mill is created, opponent's piece *must* be removed
 
@@ -359,7 +359,7 @@ def makePrompt(state):
         "You are playing a game of Lasker Morris. Here are the rules:\n" 
         "1. There are two players. Each player starts with 10 stones.\n"
         "2. A valid move is in the format (A B C):\n"
-        "- A: Current location (either hand ('h1'/'h2'), or a board position occupied by a stone of yours you wish to move).\n"
+        "- A: Current location (either hand ('h1'/'h2') if you have more than 0 stones in your hand, or a board position occupied by a stone of yours you wish to move).\n"
         "- B: Target empty board position.\n"
         "- C: 'r0' normally, or the position of an opponent's stone to remove if a new mill is formed.\n"
         "3. A mill is a very powerful type of move. A mill allows you to remove a stone placed by your opponent. One is formed when three stones from the same player occupy one of the following sets of positions:\n" + mill_combinations + "\n"
@@ -436,12 +436,19 @@ def main():
             start_time = time()
             response = call_llm(newPrompt)
             AImove = extract_move(response)
-            while AImove not in theState.moves and time()-start_time < time_limit - safe_margin:
+            # Reprompt if move is invalid and still has time
+            while time() - start_time < time_limit - safe_margin:
+                if AImove in theState.moves:
+                    break  # Valid move found, exit the loop
                 response = call_llm(newPrompt)
                 AImove = extract_move(response)
+            else:
+                # No valid move was found, just choose the first one
+                AImove = theState.moves[0]
             print(AImove, flush=True)
             # then add to gamestate
             theState = LM.result(theState, AImove)
+            AImove = None
             if theState == "INVALID":
                 print("" + opp + " player has played an invalid move; " + oppPlayer(opp) + " player wins!", flush=True)
                 sys.exit(0)
