@@ -122,7 +122,7 @@ class Lasker_Morris():
             pSquares = [pos for pos, occupant in state.board.items() if occupant == curPlayer]
             for sq in pSquares:
                 for empty in emptySquares:
-                    millMoves = self.getMillMoves(state, empty, sq, curPlayer)
+                    millMoves = self.getMillMoves(state, sq, empty, curPlayer)
                     if millMoves is None:
                         moves.append(f'{sq} {empty} r0')
                     else:
