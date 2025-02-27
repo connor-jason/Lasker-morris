@@ -299,134 +299,15 @@ class Lasker_Morris():
         return newest_state
 
     def utility(self, state, player):
-        """Return the value of this final state to player."""
-
-        opponent = 'blue' if player == 'orange' else 'blue'
-
-        # If the game is over, return a high or low value
+        opponent = 'blue' if player == 'orange' else 'orange'
         if self.terminal_test(state):
             if self.check_win(state, player):
-                return 1000
+                return 1000 # win for the current player
             elif self.check_win(state, opponent):
-                return -1000
-            elif state.stalemate_count == stalemate_threshold:
-                return 0
-        
-        # Determine the game phase
-        boardStones = sum(1 for pos in state.board if state.board[pos] == player)
-        handStones = 10 - (boardStones + state.removed[player])
-        if handStones > 0:
-            phase = 'placement'
-        elif boardStones == 3:
-            phase = 'flying'
-        else:
-            phase = 'moving'
-
-        # Set weights based on the game phase, weights are pretty arbitrary and are just my best guess
-        if phase == 'placement':
-            weight_mills = 20
-            weight_potential = 14
-            weight_pieces = 5
-            weight_moves = 0.5
-        elif phase == 'moving':
-            weight_mills = 15
-            weight_potential = 6
-            weight_pieces = 2
-            weight_moves = 1
-        else: # flying phase
-            weight_mills = 10
-            weight_potential = 4
-            weight_pieces = 2.5
-            weight_moves = 1.5
-
-        # Optimal board position weights during the placement phase, weights are pretty arbitrary and are just my best guess
-        position_weights = {
-            # Row 1
-            "a1": 0.8,
-            "d1": 1.0,
-            "g1": 0.8,
-
-            # Row 2
-            "b2": 1.0,
-            "d2": 1.4, # Next to d3 intersection
-            "f2": 1.0,
-
-            # Row 3
-            "c3": 1.2, # Corner of inner square
-            "d3": 2.5, # Intersection
-            "e3": 1.2, # Corner of inner square
-
-            # Row 4
-            "a4": 1.0,
-            "b4": 1.4, # Next to c4 intersection
-            "c4": 2.5, # Intersection
-            "e4": 2.5, # Intersection
-            "f4": 1.4, # Next to e4 intersection
-            "g4": 1.0,
-
-            # Row 5
-            "c5": 1.2, # Corner of inner square
-            "d5": 2.5, # Intersection
-            "e5": 1.2, # Corner of inner square
-
-            # Row 6
-            "b6": 1.0,
-            "d6": 1.4, # Next to d5 intersection
-            "f6": 1.0,
-
-            # Row 7
-            "a7": 0.8,
-            "d7": 1.0,
-            "g7": 0.8
-        }
-
-        # Compute positional bonus during placement phase
-        if phase == 'placement':
-            positional_player = sum(position_weights.get(pos, 1.0) for pos in state.board if state.board[pos] == player)
-            positional_opponent = sum(position_weights.get(pos, 1.0) for pos in state.board if state.board[pos] == opponent)
-            pos_score = 4 * (positional_player - positional_opponent)
-        else:
-            pos_score = 0
-
-        # Count the number of mills for each player
-        mills_player = 0
-        mills_opponent = 0
-        for mill in Lasker_Morris.MILL_LIST:
-            if all(state.board[pos] == player for pos in mill):
-                mills_player += 1
-            elif all(state.board[pos] == opponent for pos in mill):
-                mills_opponent += 1
-
-        # Count potential mills (2 in a row with one empty spot)
-        potential_mills_player = 0
-        potential_mills_opponent = 0
-        for mill in Lasker_Morris.MILL_LIST:
-            pieces_player = sum(1 for pos in mill if state.board[pos] == player)
-            pieces_opponent = sum(1 for pos in mill if state.board[pos] == opponent)
-            empty = sum(1 for pos in mill if state.board[pos] is None)
-            if pieces_player == 2 and empty == 1:
-                potential_mills_player += 1
-            if pieces_opponent == 2 and empty == 1:
-                potential_mills_opponent += 1
-
-        # Count the number of pieces for each player
-        pieces_player = sum(1 for pos in state.board if state.board[pos] == player)
-        pieces_opponent = sum(1 for pos in state.board if state.board[pos] == opponent)
-
-        # Count the number of legal moves available for each player
-        legal_moves_player = len(self.actions(state))
-
-        opponent_state = state._replace(to_move=opponent)
-        legal_moves_opponent = len(self.actions(opponent_state))
-
-        # Combine the values into a single score (very mill focused)
-        score = (weight_mills * (mills_player - mills_opponent) +
-                weight_potential * (potential_mills_player - potential_mills_opponent) +
-                weight_pieces * (pieces_player - pieces_opponent) +
-                weight_moves * (legal_moves_player - legal_moves_opponent) +
-                pos_score)
-        
-        return score
+                return -1000 # loss for the current player
+            else:
+                return 0  # tie/stalemate
+        return 1 # non-terminal states get an arbitrary value
     
     def check_mill(self, board, pos, player):
         """
@@ -522,11 +403,11 @@ def oppPlayer(p):
 def endStatements(theState, LM):
     if LM.terminal_test(theState):
         match theState.utility:
-            case 100:
+            case 1000:
                 print("GAME OVER: blue player wins!")
             case 0:
                 print("GAME OVER: it's a draw!")
-            case -100:
+            case -1000:
                 print("GAME OVER: orange player wins!")
         sys.exit(0)
 
