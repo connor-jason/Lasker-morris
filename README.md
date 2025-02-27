@@ -8,9 +8,11 @@ To run with referee:
 ``` cs4341-referee laskermorris -p1 "python Lake_Morts_LLM.py" -p2 "python Lake_Morts_LLM.py" --visual -t 60```
 
 # System Description
+We got our LLM code straight from the quickstart guide provided by Google. All it does is call Gemini 2.0 Flash and give it a prompt of our choice using the google genai Python package. We created our prompt using a function, <i>makePrompt</i>, that populates our prompt template with board information, move information, mill information, etc. We then pass this to our LLM function and see what it responds with. We parse it's response with a simple-ish regex that looks for the special move format within the response from the LLM. If the LLM considers multiple moves, it will save the last instance since this is most likely to be the move the LLM decided to choose. If the move is found to be invalid, we will do one of two things: prompt the LLM again or just choose an arbitrary move. If there is still time left on the "clock", it will reprompt the LLM. If the time is almost out, it will just choose the first move in the list of all moves and send that one. This method avoids all invalid moves from what we can tell.
 
 # Prompt Engineering
 Here are all the different prompts we had at one point in our repo:
+
 ## Prompt variation 1
 ```
 intro = "Hello, you are playing a game of Lasker Morris. The rules will be summarized below: There are two players: blue and orange. Each player has 10 stones in their hand at the start of the game. The initial board is set up as so: [a1: None, a4: None, a7: None, b2: None, b4: None, b6: None, c3: None, c4: None, c5: None, d1: None, d2: None, d3: None, d5: None, d6: None, d7: None, e3: None, e4: None, e5: None, f2: None, f4: None, f6: None, g1: None, g4: None, g7: None]. A mill is formed when three stones of the same color are placed on the board that are aligned contiguously vertically or horizontally. Here is the list of mill combinations: (a1, a4, a7), (a7, d7, g7), (g7, g4, g1), (a1, d1, g1), (b2, d2, f2), (b2, b4, b6), (b6, d6, f6), (f6, f4, f2), (a4, b4, c4), (e4, f4, g4), (d1, d2, d3), (d5, d6, d7), (c3, d3, e3), (c3, c4, c5), (c5, d5, e5), (e5, e4, e3)."
