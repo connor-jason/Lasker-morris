@@ -174,8 +174,8 @@ class Lasker_Morris():
             newBoard[sq] = player
         else:
             # Flying move
-            newBoard[sq] = None
-            newBoard[hand] = player
+            newBoard[sq] = player
+            newBoard[hand] = None
 
         # For placement moves you need the sq, for moving moves you need the target spot
         target = sq if hand.startswith('h') else hand
