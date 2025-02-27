@@ -15,7 +15,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 def call_llm(prompt):
-    sleep(5)
+    sleep(4.5)
     response = client.models.generate_content(
          model="gemini-2.0-flash", contents=prompt
     )
@@ -43,7 +43,7 @@ def extract_move(response_text):
 GameState = namedtuple('GameState', 'to_move, utility, board, moves, removed, stalemate_count')
 time_limit = 60  # seconds
 stalemate_threshold = 20
-safe_margin = 10  # 10 second safe margin
+safe_margin = 12  # 10 second safe margin
 # Assumptions made:
 # When a mill is created, opponent's piece *must* be removed
 
@@ -147,7 +147,7 @@ class Lasker_Morris():
                 # then, remove all adjs that are NOT empty
                 adjSqs = [adj for adj in self.adj(sq) if state.board[adj] is None]
                 for adj in adjSqs:
-                    millMoves = self.getMillMoves(state, adj, sq, curPlayer)
+                    millMoves = self.getMillMoves(state, sq, adj, curPlayer)
                     if millMoves is None:
                         moves.append(f'{sq} {adj} r0')
                     else:
@@ -200,23 +200,23 @@ class Lasker_Morris():
         }
         return adjacent.get(pos, [])
 
-    def getMillMoves(self, state, hand, sq, player):
+    def getMillMoves(self, state, current_square, target_square, player):
         # helper function- returns None if no new mill is formed by move
         # otherwise, returns all possible moves with given 'A B '
         # first, check if it makes a mill
         oldBoard = state.board.copy()
         newBoard = oldBoard.copy()        
         
-        if hand.startswith('h'):
+        if current_square.startswith('h'):
             # Placement move
-            newBoard[sq] = player
+            newBoard[target_square] = player
         else:
             # Flying move
-            newBoard[sq] = player
-            newBoard[hand] = None
+            newBoard[target_square] = player
+            newBoard[current_square] = None
 
         # For placement moves you need the sq, for moving moves you need the target spot
-        target = sq if hand.startswith('h') else hand
+        target = target_square if current_square.startswith('h') else current_square
 
         # Check for mills that include the target spot
         mills_involving_target = self.mills_by_position[target]
@@ -240,9 +240,9 @@ class Lasker_Morris():
             # if all milled, return all moves with oppSquares
             # otherwise, return all moves with notMilled
             if not notMilled:
-                return [f'{hand} {sq} {z}' for z in opponent_positions]
+                return [f'{current_square} {target_square} {z}' for z in opponent_positions]
             
-            return [f'{hand} {sq} {z}' for z in notMilled]
+            return [f'{current_square} {target_square} {z}' for z in notMilled]
         return None
         
     def result(self, state, move):
@@ -375,7 +375,7 @@ def makePrompt(state):
     
     instructions = (
         "Please perform the following:\n"
-        "1. Provide your logical reasoning for which move to select, explaining your thought process using the game state information provided. Prioritize moves that make a mill.\n"
+        "1. Provide your logical reasoning for which move to select, explaining your thought process using the game state information provided. Prioritize moves that make a mill or moves that block an opponent's mill.\n"
         "2. At the end, output the final move in (A B C) format (for example, 'h1 d2 r0') without any extra commentary.\n"
         "Remember: Your reasoning should be detailed, but the final output must be a single valid move from the list of available moves."
     )
@@ -447,7 +447,7 @@ def main():
             AImove = extract_move(response)
             # Reprompt if move is invalid and still has time
             while time() - start_time < time_limit - safe_margin:
-                if AImove in theState.moves:
+                if AImove in theState.moves and LM.result(theState, AImove) != "INVALID":
                     break  # Valid move found, exit the loop
                 response = call_llm(newPrompt)
                 AImove = extract_move(response)

@@ -58,7 +58,7 @@ return rules + "\n" + current_state + "\n" + instructions
 ```
 
 ### Findings
-This prompt was better. It removed some of the fluff, and organized the information in a much more clear and structured way. We found that putting the models "tasks" at the end seemed to work best and be the most consistent. But, some of the details could be more clear to try to minimize invalid moves or poor gameplay. We didn't want to give it too much strategy because we wanted to see what it thought was the best way to play, but we did teach it about the power of mills since it's a key part of the game.
+This prompt was better. It removed some of the fluff, and organized the information in a much more clear and structured way. We found that putting the models "tasks" at the end seemed to work best and be the most consistent. But, some of the details could be more clear to try to minimize invalid moves or poor gameplay. We didn't want to give it too much strategy because we wanted to see what it thought was the best way to play, but we did teach it about the power of making/blocking mills since it's a key part of the game.
 
 ## Final Prompt
 ```
@@ -83,7 +83,7 @@ current_state = (
 
 instructions = (
     "Please perform the following:\n"
-    "1. Provide your logical reasoning for which move to select, explaining your thought process using the game state information provided. Prioritize moves that make a mill.\n"
+    "1. Provide your logical reasoning for which move to select, explaining your thought process using the game state information provided. Prioritize moves that make a mill or moves that block an opponent's mill.\n"
     "2. At the end, output the final move in (A B C) format (for example, 'h1 d2 r0') without any extra commentary.\n"
     "Remember: Your reasoning should be detailed, but the final output must be a single valid move from the list of available moves."
 )
@@ -104,8 +104,8 @@ Yes, in the terminal you are able to play against the program.
 ### Did your program play against itself? 
 Yes, with referee we were able to play the program against itself.
 
-### Did your program play against other programs?
-No.
+### Did your program play against the program from part 1?
+Yes, and it lost very badly. Minimax with alpha-beta pruning played much better than Gemini.
 
 ### How did your program do during those games? 
 It doesn't play extremely intelligently. It really only tries to form mills, which is what we told it to do, but there really is no thought about strategy other than that. This causes the games to become very boring and predictable.

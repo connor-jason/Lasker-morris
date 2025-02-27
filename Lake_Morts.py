@@ -110,7 +110,7 @@ class Lasker_Morris():
                 # then, remove all adjs that are NOT empty
                 adjSqs = [adj for adj in self.adj(sq) if state.board[adj] is None]
                 for adj in adjSqs:
-                    millMoves = self.getMillMoves(state, adj, sq, curPlayer)
+                    millMoves = self.getMillMoves(state, sq, adj, curPlayer)
                     if millMoves is None:
                         moves.append(f'{sq} {adj} r0')
                     else:
@@ -162,23 +162,23 @@ class Lasker_Morris():
         }
         return adjacent.get(pos, [])
 
-    def getMillMoves(self, state, hand, sq, player):
+    def getMillMoves(self, state, current_square, target_square, player):
         # helper function- returns None if no new mill is formed by move
         # otherwise, returns all possible moves with given 'A B '
         # first, check if it makes a mill
         oldBoard = state.board.copy()
         newBoard = oldBoard.copy()        
         
-        if hand.startswith('h'):
+        if current_square.startswith('h'):
             # Placement move
-            newBoard[sq] = player
+            newBoard[target_square] = player
         else:
             # Flying move
-            newBoard[sq] = player
-            newBoard[hand] = None
+            newBoard[target_square] = player
+            newBoard[current_square] = None
 
         # For placement moves you need the sq, for moving moves you need the target spot
-        target = sq if hand.startswith('h') else hand
+        target = target_square if current_square.startswith('h') else current_square
 
         # Check for mills that include the target spot
         mills_involving_target = self.mills_by_position[target]
@@ -202,9 +202,9 @@ class Lasker_Morris():
             # if all milled, return all moves with oppSquares
             # otherwise, return all moves with notMilled
             if not notMilled:
-                return [f'{hand} {sq} {z}' for z in opponent_positions]
+                return [f'{current_square} {target_square} {z}' for z in opponent_positions]
             
-            return [f'{hand} {sq} {z}' for z in notMilled]
+            return [f'{current_square} {target_square} {z}' for z in notMilled]
         return None
         
     def result(self, state, move):
