@@ -30,7 +30,6 @@ from tqdm.auto import tqdm
 # evaluation & visualization part
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 import seaborn as sns
-
 ################################################################################
 # Get Data
 ################################################################################
@@ -59,7 +58,7 @@ After getting the dataset, can use dataset.classes to get the class names: ['ang
 ## If you want to show some image samples
 
 # Image dir
-image_dir = "C:/Users/peter/Pictures/fer_2013_train/fer_2013_train/train"
+image_dir = "C:/GitHubRepos/aiProj/Lasker-morris/fer_2013_train"
 
 # Images from all classes
 class_folders = [folder for folder in os.listdir(image_dir) if os.path.isdir(os.path.join(image_dir, folder))]
@@ -279,7 +278,7 @@ For more infomation about data and dataloader, please refer to the PyTorch websi
 
 # Construct train datasets
 # The argument "loader" tells how torchvision reads the data.
-train_dir = "C:/Users/peter/Pictures/fer_2013_train/fer_2013_train/train"
+train_dir = "C:/GitHubRepos/aiProj/Lasker-morris/fer_2013_train"
 
 # We use ImageFolder to read the images and set the annotations for each image
 # Do not use train_transforms for this step, since the validation data should not have data augmantation
@@ -291,6 +290,8 @@ desired_class_order = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', '
 
 new_class_to_idx = {cls_name: i for i, cls_name in enumerate(desired_class_order)}
 full_train_dataset.class_to_idx = new_class_to_idx
+print(new_class_to_idx.keys())  # See all keys in the dictionary
+
 
 full_train_dataset.samples = [
     (img_path, new_class_to_idx[original_cls_name])
@@ -452,7 +453,7 @@ We keep part of the test data and we’ll run your best performing model to dete
 
 # Construct test datasets
 # The argument "loader" tells how torchvision reads the data.
-test_dir = "C:/Users/peter/Pictures/fer_2013_test/fer_2013_test/test"
+test_dir = "C:/GitHubRepos/aiProj/Lasker-morris/fer_2013_test"
 
 # We use ImageFolder to read the images and set the annotations for each image
 test_dataset = ImageFolder(test_dir, transform=test_transforms)
